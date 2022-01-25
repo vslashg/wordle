@@ -39,8 +39,8 @@ cc_library(
 )
 
 cc_binary(
-    name = "repl",
-    srcs = ["repl.cc"],
+    name = "search",
+    srcs = ["search.cc"],
     deps = [
         ":partition_map",
         ":score",
