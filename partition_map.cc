@@ -53,20 +53,18 @@ void SortPartitions(std::vector<Partition>& ps) {
 Partition MakeRootPartition(const char* guess) {
   Partition p;
   p.word = guess;
-  absl::flat_hash_map<Result, State> parts;
+  absl::flat_hash_map<Result, std::bitset<kNumTargets>> parts;
   int tidx = 0;
   for (const char* target : targets) {
     if (guess != target) {
       Result r = Score(guess, target);
-      parts[r].SetBit(tidx);
+      parts[r].set(tidx);
     }
     ++tidx;
   }
 
   for (auto& pair : parts) {
-    p.branches.emplace_back();
-    p.branches.back().result = pair.first;
-    p.branches.back().mask = std::move(pair.second);
+    p.branches.push_back({pair.first, State(pair.second)});
   }
   SortPartition(p);
   return p;
@@ -97,10 +95,7 @@ std::vector<Partition> PartitionMap::SubPartitions(const State& in) const {
       if (c == in.count()) {
         break;  // no-op move
       } else if (c > 0) {
-        Branch fb;
-        fb.result = b.result;
-        fb.mask = std::move(mix);
-        filtered.branches.push_back(std::move(fb));
+        filtered.branches.push_back({b.result, std::move(mix)});
       }
     }
     if (!filtered.branches.empty()) {

@@ -28,13 +28,25 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "thread_pool",
+    hdrs = ["thread_pool.h"],
+    deps = [
+        "@absl//absl/functional:function_ref",
+        "@absl//absl/algorithm:container",
+        "@absl//absl/synchronization",
+    ],
+)
+
 cc_binary(
     name = "repl",
     srcs = ["repl.cc"],
     deps = [
         ":partition_map",
         ":score",
+        ":thread_pool",
         "@absl//absl/time",
+        "@folly//:folly",
     ],
 )
 

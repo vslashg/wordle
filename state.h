@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <array>
+#include <bitset>
 #include <cstdint>
 #include <memory>
 
@@ -12,8 +13,12 @@ namespace wordle {
 
 class State {
  public:
-  State() : words_(std::make_unique<Array>()), num_bits_(0) {
-    std::fill(words_->begin(), words_->end(), uint64_t{0});
+  State(const std::bitset<kNumTargets>& b) : State() {
+    for (int i = 0; i < kNumTargets; ++i) {
+      if (b[i]) {
+        SetBit(i);
+      }
+    }
   }
   State(const State&) = delete;
   State(State&&) = default;
@@ -46,18 +51,6 @@ class State {
     return ans;
   }
 
-  void SetBit(int idx) {
-    const int word_idx = idx / 64;
-    const int pos_idx = idx % 64;
-    uint64_t& word = (*words_)[word_idx];
-    const uint64_t mask = uint64_t{1} << pos_idx;
-    if (!(word & mask)) {
-      word |= mask;
-      ++num_bits_;
-    }
-    exemplar_ = std::min(exemplar_, idx);
-  }
-
   const char* Exemplar() const {
     return (exemplar_ == kNumTargets) ? "NONE" : targets[exemplar_];
   }
@@ -77,6 +70,22 @@ class State {
   }
 
  private:
+  State() : words_(std::make_unique<Array>()), num_bits_(0) {
+    std::fill(words_->begin(), words_->end(), uint64_t{0});
+  }
+
+  void SetBit(int idx) {
+    const int word_idx = idx / 64;
+    const int pos_idx = idx % 64;
+    uint64_t& word = (*words_)[word_idx];
+    const uint64_t mask = uint64_t{1} << pos_idx;
+    if (!(word & mask)) {
+      word |= mask;
+      ++num_bits_;
+    }
+    exemplar_ = std::min(exemplar_, idx);
+  }
+
   static constexpr int kNumWords = (kNumTargets + 63) / 64;
   using Array = std::array<uint64_t, kNumWords>;
   std::unique_ptr<Array> words_;
