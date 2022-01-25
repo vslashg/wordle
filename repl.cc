@@ -4,9 +4,9 @@
 #include <thread>
 
 #include "absl/time/clock.h"
-#include "thread_pool.h"
 #include "partition_map.h"
 #include "score.h"
+#include "thread_pool.h"
 
 wordle::PartitionMap pm;
 
@@ -34,9 +34,8 @@ void MaybeIo() {
     printf(
         "%05d/%05d %s(%04d) %05d/%05d %s(%04d) %05d/%05d "
         "%05d/%05d\r",
-        dstep[0], dmax[0], dword[0], dbest[0],
-        dstep[1], dmax[1], dword[1], dbest[1], dstep[2], dmax[2], dstep[3],
-        dmax[3]);
+        dstep[0], dmax[0], dword[0], dbest[0], dstep[1], dmax[1], dword[1],
+        dbest[1], dstep[2], dmax[2], dstep[3], dmax[3]);
     fflush(stdout);
     go.store(false);
   }
@@ -83,12 +82,12 @@ int BestScore(const wordle::State& s, int limit, int depth) {
   std::vector<std::function<int()>> choice_functions;
   for (int i = 0; i < int(partitions.size()); ++i) {
     choice_functions.emplace_back([&, i] {
-      const wordle::Partition& p = partitions[i];      
+      const wordle::Partition& p = partitions[i];
       int sc = ScorePartition(s, p, depth, &atomic_limit);
       if (sc < atomic_limit.load()) {
         atomic_limit.store(sc);
         dbest[depth] = sc;
-        dword[depth] = p.word;        
+        dword[depth] = p.word;
       }
       return sc;
     });
