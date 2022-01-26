@@ -11,9 +11,9 @@ cc_library(
 )
 
 cc_library(
-    name = "score",
-    srcs = ["score.cc"],
-    hdrs = ["score.h"],
+    name = "color_guess",
+    srcs = ["color_guess.cc"],
+    hdrs = ["color_guess.h"],
 )
 
 cc_library(
@@ -22,7 +22,7 @@ cc_library(
     hdrs = ["partition_map.h"],
     deps = [
         ":dictionary",
-        ":score",
+        ":color_guess",
         ":state",
         "@absl//absl/container:flat_hash_map",
     ],
@@ -43,7 +43,7 @@ cc_binary(
     srcs = ["search.cc"],
     deps = [
         ":partition_map",
-        ":score",
+        ":color_guess",
         ":thread_pool",
         "@absl//absl/time",
         "@folly//:folly",

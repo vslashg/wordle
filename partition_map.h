@@ -2,7 +2,7 @@
 
 #include <vector>
 
-#include "score.h"
+#include "color_guess.h"
 #include "state.h"
 
 namespace wordle {
@@ -14,7 +14,7 @@ struct Branch {
   Branch& operator=(const Branch&) = delete;
   Branch& operator=(Branch&&) = default;
 
-  Result result;
+  Colors colors;
   State mask;
 };
 

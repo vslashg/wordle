@@ -1,10 +1,10 @@
 #include <string_view>
 
-#include "score.h"
+#include "color_guess.h"
 
 namespace wordle {
 
-Result::Result(std::string_view s) : value_(0) {
+Colors::Colors(std::string_view s) : value_(0) {
   for (size_t i = 0; i < 5; ++i) {
     if (s.size() <= i) return;
     if (s[i] == '1') Set(i, 1);
@@ -12,10 +12,10 @@ Result::Result(std::string_view s) : value_(0) {
   }
 }
 
-Result Score(const char* guess, const char* target) {
+Colors ColorGuess(const char* guess, const char* target) {
   std::string g = guess;
   std::string t = target;
-  Result ans;
+  Colors ans;
   // exact matches
   for (int i = 0; i < 5; ++i) {
     if (g[i] == t[i]) {

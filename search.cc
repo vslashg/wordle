@@ -5,7 +5,7 @@
 
 #include "absl/time/clock.h"
 #include "partition_map.h"
-#include "score.h"
+#include "color_guess.h"
 #include "thread_pool.h"
 #include "folly/container/EvictingCacheMap.h"
 
@@ -48,8 +48,8 @@ void MaybeIo() {
 constexpr int kOver = 100000;
 
 // A number for which a score can never reach
-// the initial state scores 7997 via `soare`
-constexpr int kScoreLimit = 7998;
+// the initial state scores 7920 via `salet`
+constexpr int kScoreLimit = 7921;
 
 int BestScore(const wordle::State& s, int limit = kScoreLimit, int depth = 0);
 
