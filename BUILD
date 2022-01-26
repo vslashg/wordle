@@ -7,7 +7,7 @@ cc_library(
 cc_library(
     name = "state",
     hdrs = ["state.h"],
-    deps = ["@absl//absl/numeric:bits"],
+    deps = ["@absl//absl/numeric:bits", "@absl//absl/hash"],
 )
 
 cc_library(
@@ -53,6 +53,14 @@ cc_binary(
 cc_binary(
     name = "solve",
     srcs = ["solve.cc"],
+    deps = [
+        ":partition_map",
+    ],
+)
+
+cc_binary(
+    name = "state_count",
+    srcs = ["state_count.cc"],
     deps = [
         ":partition_map",
     ],

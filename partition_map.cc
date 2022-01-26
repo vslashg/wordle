@@ -8,8 +8,7 @@ namespace {
 
 struct BranchCmp {
   bool operator()(const Branch& lhs, const Branch& rhs) const {
-    return std::make_tuple(lhs.mask.count(), lhs.mask.exemplar_index()) <
-           std::make_tuple(rhs.mask.count(), rhs.mask.exemplar_index());
+    return lhs.mask < rhs.mask;
   }
 };
 
@@ -26,12 +25,6 @@ struct PartitionEq {
     const auto& lb = lhs.branches;
     const auto& rb = rhs.branches;
     return lb.size() == rb.size() &&
-           std::equal(lb.begin(), lb.end(), rb.begin(),
-                      [](const auto& l, const auto& r) {
-                        return l.mask.count() == r.mask.count() &&
-                               l.mask.exemplar_index() ==
-                                   r.mask.exemplar_index();
-                      }) &&
            std::equal(
                lb.begin(), lb.end(), rb.begin(),
                [](const auto& l, const auto& r) { return l.mask == r.mask; });
@@ -84,7 +77,8 @@ PartitionMap::PartitionMap() {
   SortPartitions(all_partitions_);
 }
 
-std::vector<Partition> PartitionMap::SubPartitions(const State& in) const {
+std::vector<Partition> PartitionMap::SubPartitions(const State& in,
+                                                   bool sort_uniq) const {
   std::vector<Partition> result;
   for (const Partition& p : all_partitions_) {
     Partition filtered;
@@ -93,18 +87,28 @@ std::vector<Partition> PartitionMap::SubPartitions(const State& in) const {
       State mix = in & b.mask;
       int c = mix.count();
       if (c == in.count()) {
-        break;  // no-op move
+        if (!sort_uniq) {
+          // only emit no-op move when sort_uniq off
+          filtered.branches.push_back({b.result, std::move(mix)});
+        }
       } else if (c > 0) {
         filtered.branches.push_back({b.result, std::move(mix)});
       }
     }
     if (!filtered.branches.empty()) {
+      if (!sort_uniq) {
+        // We don't want to uniquify answers in the mode, but we still want
+        // the biggest chunks up front.
+        SortPartition(filtered);
+      }
       result.push_back(std::move(filtered));
     }
   }
-  SortPartitions(result);
-  result.erase(std::unique(result.begin(), result.end(), PartitionEq{}),
-               result.end());
+  if (sort_uniq) {
+    SortPartitions(result);
+    result.erase(std::unique(result.begin(), result.end(), PartitionEq{}),
+                 result.end());
+  }
   return result;
 };
 

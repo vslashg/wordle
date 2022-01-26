@@ -26,19 +26,21 @@ void RunThreads(int num_threads, std::vector<std::function<int()>> fns,
   std::vector<std::thread> threads;
   for (int i = 0; i < num_threads; ++i) {
     threads.emplace_back([&] {
-      std::function<int()> fn;
-      {
-        absl::MutexLock mu(&in_mutex);
-        if (fns.empty()) {
-          return;
+      while (true) {
+        std::function<int()> fn;
+        {
+          absl::MutexLock mu(&in_mutex);
+          if (fns.empty()) {
+            return;
+          }
+          fn = std::move(fns.back());
+          fns.pop_back();
         }
-        fn = std::move(fns.back());
-        fns.pop_back();
-      }
-      int ret = fn();
-      {
-        absl::MutexLock mu(&out_mutex);
-        callback(ret);
+        int ret = fn();
+        {
+          absl::MutexLock mu(&out_mutex);
+          callback(ret);
+        }
       }
     });
   }

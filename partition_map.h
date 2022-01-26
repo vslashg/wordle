@@ -37,7 +37,8 @@ class PartitionMap {
     return all_partitions_;
   }
 
-  std::vector<Partition> SubPartitions(const State& input) const;
+  std::vector<Partition> SubPartitions(const State& input,
+                                       bool sort_uniq = true) const;
 
  private:
   std::vector<Partition> all_partitions_;

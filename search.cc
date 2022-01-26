@@ -7,35 +7,39 @@
 #include "partition_map.h"
 #include "score.h"
 #include "thread_pool.h"
+#include "folly/container/EvictingCacheMap.h"
 
 wordle::PartitionMap pm;
+
+absl::Mutex memomap_mu;
+
+template<>
+struct std::hash<wordle::StateId> {
+  size_t operator()(wordle::StateId id) const {
+    return id;
+  }
+};
+
+folly::EvictingCacheMap<wordle::StateId, int>
+    memomap(50'000'000);
 
 int dstep[20] = {0};
 int dmax[20] = {0};
 int dbest[20] = {9999};
+
+int dcached = 0;
+int dnew = 0;
+int dover = 0;
+int dwasted = 0;
 const char* dword[20] = {"?????", "?????", "?????", "?????", "?????"};
-/*
-int Score(const wordle::State& s, char* d = depth) {
-  *d = '-';
-  if (s.count() == 1) return 1;
-  if (s.count() == 2) return 3;
-  int score = s.count();
-  wordle::Partition next = std::move(pm.SubPartitions(s).front());
-  for (const wordle::Branch& b : next.branches) {
-    score += Score(b.mask, d + 1);
-  }
-  return score;
-}
-*/
+
 std::atomic<bool> go;
 
 void MaybeIo() {
   if (go.load()) {
     printf(
-        "%05d/%05d %s(%04d) %05d/%05d %s(%04d) %05d/%05d "
-        "%05d/%05d\r",
-        dstep[0], dmax[0], dword[0], dbest[0], dstep[1], dmax[1], dword[1],
-        dbest[1], dstep[2], dmax[2], dstep[3], dmax[3]);
+        "%05d/%05d %s(%04d) ca=%-8d n=%-8d ov=%-8d ws=%-8d\r",
+        dstep[0], dmax[0], dword[0], dbest[0], dcached, dnew, dover, dwasted);
     fflush(stdout);
     go.store(false);
   }
@@ -43,8 +47,9 @@ void MaybeIo() {
 
 constexpr int kOver = 100000;
 
-// A number for which a score can never go above
-constexpr int kScoreLimit = 8020;
+// A number for which a score can never reach
+// the initial state scores 7997 via `soare`
+constexpr int kScoreLimit = 7998;
 
 int BestScore(const wordle::State& s, int limit = kScoreLimit, int depth = 0);
 
@@ -66,6 +71,14 @@ int ScorePartition(const wordle::State& s, const wordle::Partition& p,
 }
 
 int BestScore(const wordle::State& s, int limit, int depth) {
+  {
+    absl::MutexLock lock(&memomap_mu);
+    auto it = memomap.find(s.ToStateId());
+    if (it != memomap.end()) {
+      ++dcached;
+      return it->second;
+    }
+  }
   MaybeIo();
   int simple_limit = s.count() * 2 - 1;
   if (simple_limit >= limit) return kOver;
@@ -96,6 +109,16 @@ int BestScore(const wordle::State& s, int limit, int depth) {
     ++dstep[depth];
     best_so_far = std::min(best_so_far, score);
   });
+  if (best_so_far < kOver) {
+    absl::MutexLock lock(&memomap_mu);
+    if (memomap.insert(s.ToStateId(), best_so_far).second) {
+      ++dnew;
+    } else {
+      ++dwasted;
+    }
+  } else {
+    ++dover;
+  }
   return best_so_far;
 }
 

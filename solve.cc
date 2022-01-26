@@ -9,6 +9,10 @@ using namespace wordle;
 int main(int argc, char** argv) {
   PartitionMap pm;
   auto sp = pm.SubPartitions(wordle::State::AllBits());
+  for (int i = 0; i < 100; ++i) {
+    std::cout << i << " " << sp[i].word << " " << sp[i].branches.front().mask.count()
+              << "\n";
+  }
   if (argc == 2) {
     // forced first guess
     while (!sp.empty()) {
