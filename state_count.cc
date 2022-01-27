@@ -5,7 +5,7 @@
 
 using namespace wordle;
 
-PartitionMap pm;
+const PartitionMap& pm = PartitionMap::Singleton();
 
 void concoct(int cap) {
   std::set<wordle::State> all_masks;

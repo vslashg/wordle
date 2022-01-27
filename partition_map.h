@@ -31,7 +31,10 @@ struct Partition {
 
 class PartitionMap {
  public:
-  PartitionMap();
+  static const PartitionMap& Singleton() {
+    static PartitionMap pm;
+    return pm;
+  }
 
   const std::vector<Partition>& AllPartitions() const {
     return all_partitions_;
@@ -41,6 +44,8 @@ class PartitionMap {
                                        bool sort_uniq = true) const;
 
  private:
+  PartitionMap();
+
   std::vector<Partition> all_partitions_;
 };
 

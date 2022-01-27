@@ -38,6 +38,17 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "score",
+    srcs = ["score.cc"],
+    hdrs = ["score.h"],
+    deps = [
+        ":dictionary",
+        ":partition_map",
+        ":state",
+    ]
+)
+
 cc_binary(
     name = "search",
     srcs = ["search.cc"],
@@ -55,6 +66,7 @@ cc_binary(
     srcs = ["solve.cc"],
     deps = [
         ":partition_map",
+        ":score",
     ],
 )
 

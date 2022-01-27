@@ -9,7 +9,7 @@
 #include "thread_pool.h"
 #include "folly/container/EvictingCacheMap.h"
 
-wordle::PartitionMap pm;
+const wordle::PartitionMap& pm = wordle::PartitionMap::Singleton();
 
 absl::Mutex memomap_mu;
 
