@@ -4,24 +4,21 @@
 #include <thread>
 
 #include "absl/time/clock.h"
-#include "partition_map.h"
 #include "color_guess.h"
-#include "thread_pool.h"
 #include "folly/container/EvictingCacheMap.h"
+#include "partition_map.h"
+#include "thread_pool.h"
 
 const wordle::PartitionMap& pm = wordle::PartitionMap::Singleton();
 
 absl::Mutex memomap_mu;
 
-template<>
+template <>
 struct std::hash<wordle::StateId> {
-  size_t operator()(wordle::StateId id) const {
-    return id;
-  }
+  size_t operator()(wordle::StateId id) const { return id; }
 };
 
-folly::EvictingCacheMap<wordle::StateId, int>
-    memomap(50'000'000);
+folly::EvictingCacheMap<wordle::StateId, int> memomap(50'000'000);
 
 int dstep[20] = {0};
 int dmax[20] = {0};
@@ -31,15 +28,15 @@ int dcached = 0;
 int dnew = 0;
 int dover = 0;
 int dwasted = 0;
-const char* dword[20] = {"?????", "?????", "?????", "?????", "?????"};
+wordle::Word dword[20];
 
 std::atomic<bool> go;
 
 void MaybeIo() {
   if (go.load()) {
-    printf(
-        "%05d/%05d %s(%04d) ca=%-8d n=%-8d ov=%-8d ws=%-8d\r",
-        dstep[0], dmax[0], dword[0], dbest[0], dcached, dnew, dover, dwasted);
+    printf("%05d/%05d %s(%04d) ca=%-8d n=%-8d ov=%-8d ws=%-8d\r", dstep[0],
+           dmax[0], dword[0].ToString(), dbest[0], dcached, dnew, dover,
+           dwasted);
     fflush(stdout);
     go.store(false);
   }
@@ -88,7 +85,7 @@ int BestScore(const wordle::State& s, int limit, int depth) {
   dstep[depth] = 0;
   dmax[depth] = partitions.size();
   dbest[depth] = 9999;
-  dword[depth] = "?????";
+  dword[depth] = wordle::Word();
 
   int best_so_far = kOver;
   std::atomic<int> atomic_limit{limit};

@@ -1,6 +1,12 @@
 #include "dictionary.h"
 
+#include <algorithm>
+#include <functional>
+#include <string_view>
+
 namespace wordle {
+
+namespace {
 
 const char* targets[2315] = {
     "aback", "abase", "abate", "abbey", "abbot", "abhor", "abide", "abled",
@@ -1630,5 +1636,55 @@ const char* non_targets[10657] = {
     "zupan", "zupas", "zuppa", "zurfs", "zuzim", "zygal", "zygon", "zymes",
     "zymic",
 };
+
+}  // namespace
+
+Word::Word(std::string_view s) {
+  const char** it = std::lower_bound(std::begin(targets), std::end(targets), s,
+                                     std::less<std::string_view>{});
+  if (it != std::end(targets) && *it == s) {
+    index_ = it - targets;
+    return;
+  }
+  it = std::lower_bound(std::begin(non_targets), std::end(non_targets), s,
+                        std::less<std::string_view>{});
+  if (it != std::end(non_targets) && *it == s) {
+    index_ = kNumTargets + (it - non_targets);
+    return;
+  }
+  index_ = 0xffff;
+}
+
+const char* Word::ToString() const {
+  if (index_ < kNumTargets) {
+    return targets[index_];
+  }
+  if (index_ < kNumTargets + kNumNonTargets) {
+    return non_targets[index_ - kNumTargets];
+  }
+  return "?????";
+}
+
+const std::vector<Word>& Word::AllWords() {
+  static auto words = [] {
+    std::vector<Word> w;
+    for (int i = 0; i < kNumTargets + kNumNonTargets; ++i) {
+      w.emplace_back(i);
+    }
+    return w;
+  }();
+  return words;
+}
+
+const std::vector<Word>& Word::AllTargetWords() {
+  static auto words = [] {
+    std::vector<Word> w;
+    for (int i = 0; i < kNumTargets; ++i) {
+      w.emplace_back(i);
+    }
+    return w;
+  }();
+  return words;
+}
 
 }  // namespace wordle

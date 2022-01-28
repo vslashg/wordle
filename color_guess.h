@@ -4,6 +4,8 @@
 #include <string>
 #include <string_view>
 
+#include "dictionary.h"
+
 namespace wordle {
 
 class Colors {
@@ -45,8 +47,6 @@ class Colors {
 
 // Return an object representing the color output of a given guess vs a given
 // target.  This is not fast, but it doesn't need to be.
-//
-// Both strings must be length five.  This is not checked.
-Colors ColorGuess(const char* guess, const char* target);
+Colors ColorGuess(Word guess, Word target);
 
 }  // namespace wordle

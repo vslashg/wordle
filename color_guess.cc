@@ -1,6 +1,6 @@
-#include <string_view>
-
 #include "color_guess.h"
+
+#include <string_view>
 
 namespace wordle {
 
@@ -12,9 +12,9 @@ Colors::Colors(std::string_view s) : value_(0) {
   }
 }
 
-Colors ColorGuess(const char* guess, const char* target) {
-  std::string g = guess;
-  std::string t = target;
+Colors ColorGuess(Word guess, Word target) {
+  std::string g = guess.ToString();
+  std::string t = target.ToString();
   Colors ans;
   // exact matches
   for (int i = 0; i < 5; ++i) {

@@ -43,12 +43,12 @@ void SortPartitions(std::vector<Partition>& ps) {
   std::sort(ps.begin(), ps.end(), PartitionCmp{});
 }
 
-Partition MakeRootPartition(const char* guess) {
+Partition MakeRootPartition(Word guess) {
   Partition p;
   p.word = guess;
   absl::flat_hash_map<Colors, std::bitset<kNumTargets>> parts;
   int tidx = 0;
-  for (const char* target : targets) {
+  for (Word target : Word::AllTargetWords()) {
     if (guess != target) {
       Colors c = ColorGuess(guess, target);
       parts[c].set(tidx);
@@ -66,14 +66,9 @@ Partition MakeRootPartition(const char* guess) {
 }  // namespace
 
 PartitionMap::PartitionMap() {
-  for (const char* guess : targets) {
-    all_partitions_.push_back(MakeRootPartition(guess));
+  for (Word w : Word::AllWords()) {
+    all_partitions_.push_back(MakeRootPartition(w));
   }
-  std::cout << "\n";
-  for (const char* guess : non_targets) {
-    all_partitions_.push_back(MakeRootPartition(guess));
-  }
-  std::cout << "\n";
   SortPartitions(all_partitions_);
 }
 

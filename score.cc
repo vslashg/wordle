@@ -13,7 +13,7 @@ int ScoreStatePartition(const State& s, const Partition& p,
   // Each branch in this partition represents a different set of colors for
   // our guess.  We must increase the score by the score of each such state
   // we are transitioning to.
-  
+
   // To enable early pruning, we first add in a lower bound value for each
   // match.  (A state with N bits has as a lower bound 2N-1 as a score.)
   for (const Branch& b : p.branches) {
@@ -24,7 +24,7 @@ int ScoreStatePartition(const State& s, const Partition& p,
       // We've hit the limit, exit early
       return kOver;
     }
-    // Subtract out our lower bound guess for this branch. 
+    // Subtract out our lower bound guess for this branch.
     score -= 2 * b.mask.count() - 1;
     // Recursively call BestScore, subtracting out our score so far from the
     // limit that we pass to the child.

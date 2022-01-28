@@ -25,7 +25,7 @@ struct Partition {
   Partition& operator=(const Partition&) = delete;
   Partition& operator=(Partition&&) = default;
 
-  const char* word;
+  Word word;
   std::vector<Branch> branches;
 };
 

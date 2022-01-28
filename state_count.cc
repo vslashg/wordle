@@ -38,7 +38,7 @@ void concoct(int cap) {
     if (sm.empty() || (counted % 100) == 0) {
       printf("% 8d counted, % 8d in state machine, size %4d\r", counted,
              int(sm.size()), cur_size);
-      fflush(stdout);    
+      fflush(stdout);
     }
   }
   printf("\n\n%d\n", counted);

@@ -2,8 +2,8 @@
 #include <string>
 #include <string_view>
 
-#include "score.h"
 #include "partition_map.h"
+#include "score.h"
 
 using namespace wordle;
 
@@ -11,9 +11,10 @@ int main(int argc, char** argv) {
   const PartitionMap& pm = PartitionMap::Singleton();
   auto sp = pm.SubPartitions(wordle::State::AllBits());
   if (argc == 2) {
+    Word input(argv[1]);
     // forced first guess
     while (!sp.empty()) {
-      if (std::string_view(argv[1]) == sp.front().word) {
+      if (input == sp.front().word) {
         break;
       }
       sp.erase(sp.begin());

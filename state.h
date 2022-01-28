@@ -6,8 +6,8 @@
 #include <cstdint>
 #include <memory>
 
-#include "absl/numeric/bits.h"
 #include "absl/hash/hash.h"
+#include "absl/numeric/bits.h"
 #include "dictionary.h"
 
 namespace wordle {
@@ -72,11 +72,10 @@ class State {
   }
 
   const char* Exemplar() const {
-    return (min_bit_index_ == kNumTargets) ? "NONE" : targets[min_bit_index_];
+    return (min_bit_index_ == kNumTargets) ? "NONE"
+                                           : Word(min_bit_index_).ToString();
   }
-  const char* Exemplar2() const {
-    return targets[max_bit_index_];
-  }
+  const char* Exemplar2() const { return Word(max_bit_index_).ToString(); }
 
   int count() const { return num_bits_; }
   bool empty() const { return num_bits_ == 0; }
@@ -111,7 +110,7 @@ class State {
   std::unique_ptr<Array> words_;
 
   // We cheat here by assuming sequences with equal hashes are equal
-  // (so long as the other three fields are equal too).  
+  // (so long as the other three fields are equal too).
   //
   // This order of fields allows for fast StateId generation speed on x86.
   uint64_t bits_hash_ = 0;

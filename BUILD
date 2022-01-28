@@ -14,6 +14,7 @@ cc_library(
     name = "color_guess",
     srcs = ["color_guess.cc"],
     hdrs = ["color_guess.h"],
+    deps = [":dictionary"]
 )
 
 cc_library(

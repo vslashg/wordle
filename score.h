@@ -2,8 +2,8 @@
 
 #include <atomic>
 
-#include "state.h"
 #include "partition_map.h"
+#include "state.h"
 
 namespace wordle {
 
