@@ -42,13 +42,14 @@ int ScoreState(const State& s, int limit = kScoreLimit, int num_threads = 1);
 //
 // Should not be called for states with 2 or fewer bits set.  ScoreState()
 // will short circuit in this case.
-int ScoreStatePartition(const State& s, const Partition& p, int limit);
+int ScoreStatePartition(const State& s, const FullPartition& p, int limit);
 
 // As above, but using a pointer to an atomic to use an updateable limit.
-int ScoreStatePartition(const State& s, const Partition& p,
+int ScoreStatePartition(const State& s, const FullPartition& p,
                         const std::atomic<int>* limit);
 
-inline int ScoreStatePartition(const State& s, const Partition& p, int limit) {
+inline int ScoreStatePartition(const State& s, const FullPartition& p,
+                               int limit) {
   std::atomic<int> a{limit};
   return ScoreStatePartition(s, p, &a);
 }

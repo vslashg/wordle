@@ -7,6 +7,7 @@
 
 namespace wordle {
 
+template <typename MaskType>
 struct Branch {
   Branch() = default;
   Branch(const Branch&) = delete;
@@ -15,9 +16,10 @@ struct Branch {
   Branch& operator=(Branch&&) = default;
 
   Colors colors;
-  State mask;
+  MaskType mask;
 };
 
+template <typename MaskType>
 struct Partition {
   Partition() = default;
   Partition(const Partition&) = delete;
@@ -25,28 +27,32 @@ struct Partition {
   Partition& operator=(const Partition&) = delete;
   Partition& operator=(Partition&&) = default;
 
+  using BranchType = Branch<MaskType>;
   Word word;
-  std::vector<Branch> branches;
+  std::vector<Branch<MaskType>> branches;
 };
 
-class PartitionMap {
+using FullPartition = Partition<State>;
+using FullBranch = Branch<State>;
+
+class FullPartitionMap {
  public:
-  static const PartitionMap& Singleton() {
-    static PartitionMap pm;
+  static const FullPartitionMap& Singleton() {
+    static FullPartitionMap pm;
     return pm;
   }
 
-  const std::vector<Partition>& AllPartitions() const {
+  const std::vector<FullPartition>& AllPartitions() const {
     return all_partitions_;
   }
 
-  std::vector<Partition> SubPartitions(const State& input,
-                                       bool sort_uniq = true) const;
+  std::vector<FullPartition> SubPartitions(const State& input,
+                                           bool sort_uniq = true) const;
 
  private:
-  PartitionMap();
+  FullPartitionMap();
 
-  std::vector<Partition> all_partitions_;
+  std::vector<FullPartition> all_partitions_;
 };
 
 }  // namespace wordle

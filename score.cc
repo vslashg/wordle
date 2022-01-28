@@ -2,9 +2,9 @@
 
 namespace wordle {
 
-const PartitionMap& pm = PartitionMap::Singleton();
+const FullPartitionMap& pm = FullPartitionMap::Singleton();
 
-int ScoreStatePartition(const State& s, const Partition& p,
+int ScoreStatePartition(const State& s, const FullPartition& p,
                         const std::atomic<int>* limit) {
   // The base score is one for each bit in `s`, indicating the
   // guess we're about to make.
@@ -16,10 +16,10 @@ int ScoreStatePartition(const State& s, const Partition& p,
 
   // To enable early pruning, we first add in a lower bound value for each
   // match.  (A state with N bits has as a lower bound 2N-1 as a score.)
-  for (const Branch& b : p.branches) {
+  for (const FullPartition::BranchType& b : p.branches) {
     score += 2 * b.mask.count() - 1;
   }
-  for (const Branch& b : p.branches) {
+  for (const FullPartition::BranchType& b : p.branches) {
     if (score >= limit->load()) {
       // We've hit the limit, exit early
       return kOver;
@@ -38,9 +38,9 @@ int ScoreState(const State& s, int limit, int num_threads) {
   if (simple_limit >= limit) return kOver;
   if (s.count() < 3) return simple_limit;
 
-  std::vector<Partition> partitions = pm.SubPartitions(s);
+  std::vector<FullPartition> partitions = pm.SubPartitions(s);
   int best_so_far = kOver;
-  for (const Partition& p : partitions) {
+  for (const FullPartition& p : partitions) {
     int sc = ScoreStatePartition(s, p, limit);
     if (sc < limit) {
       limit = sc;

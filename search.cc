@@ -9,7 +9,7 @@
 #include "partition_map.h"
 #include "thread_pool.h"
 
-const wordle::PartitionMap& pm = wordle::PartitionMap::Singleton();
+const wordle::FullPartitionMap& pm = wordle::FullPartitionMap::Singleton();
 
 absl::Mutex memomap_mu;
 
@@ -50,13 +50,13 @@ constexpr int kScoreLimit = 7921;
 
 int BestScore(const wordle::State& s, int limit = kScoreLimit, int depth = 0);
 
-int ScorePartition(const wordle::State& s, const wordle::Partition& p,
+int ScorePartition(const wordle::State& s, const wordle::FullPartition& p,
                    int depth, std::atomic<int>* limit) {
   int score = s.count();
-  for (const wordle::Branch& b : p.branches) {
+  for (const wordle::FullBranch& b : p.branches) {
     score += 2 * b.mask.count() - 1;
   }
-  for (const wordle::Branch& b : p.branches) {
+  for (const wordle::FullBranch& b : p.branches) {
     if (score >= limit->load()) {
       // We've hit the limit, exit early
       return kOver;
@@ -92,7 +92,7 @@ int BestScore(const wordle::State& s, int limit, int depth) {
   std::vector<std::function<int()>> choice_functions;
   for (int i = 0; i < int(partitions.size()); ++i) {
     choice_functions.emplace_back([&, i] {
-      const wordle::Partition& p = partitions[i];
+      const wordle::FullPartition& p = partitions[i];
       int sc = ScorePartition(s, p, depth, &atomic_limit);
       if (sc < atomic_limit.load()) {
         atomic_limit.store(sc);

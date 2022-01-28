@@ -37,11 +37,28 @@ class State {
            (StateId(max_bit_index_) << 64) | StateId(bits_hash_);
   }
 
+  uint64_t Rapidash() const {
+    uint64_t sh = 14695981039346656037u;
+    for (uint64_t word : *words_) {
+      sh *= uint64_t{1099511628211};
+      sh ^= (word >> 32);
+      sh *= uint64_t{1099511628211};
+      sh ^= (word & uint64_t{0xffffffff});
+    }
+    return sh;
+  }
+
   static State MakeAllBits() {
     State t;
     for (int i = 0; i < kNumTargets; ++i) {
       t.SetBit(i);
     }
+    t.bits_hash_ = absl::HashOf(*t.words_);
+    return t;
+  }
+
+  static State MakeEmpty() {
+    State t;
     t.bits_hash_ = absl::HashOf(*t.words_);
     return t;
   }
@@ -87,6 +104,10 @@ class State {
   bool operator>(const State& r) const { return ToStateId() > r.ToStateId(); }
   bool operator>=(const State& r) const { return ToStateId() >= r.ToStateId(); }
 
+  static constexpr int kNumWords = (kNumTargets + 63) / 64;
+  using Array = std::array<uint64_t, kNumWords>;
+  const Array& array() const { return *words_; }
+
  private:
   State() : words_(std::make_unique<Array>()), num_bits_(0) {
     std::fill(words_->begin(), words_->end(), uint64_t{0});
@@ -105,8 +126,6 @@ class State {
     max_bit_index_ = std::max<uint16_t>(max_bit_index_, idx);
   }
 
-  static constexpr int kNumWords = (kNumTargets + 63) / 64;
-  using Array = std::array<uint64_t, kNumWords>;
   std::unique_ptr<Array> words_;
 
   // We cheat here by assuming sequences with equal hashes are equal

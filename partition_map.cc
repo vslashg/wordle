@@ -6,22 +6,28 @@ namespace wordle {
 
 namespace {
 
+template <typename MaskType>
 struct BranchCmp {
-  bool operator()(const Branch& lhs, const Branch& rhs) const {
+  bool operator()(const Branch<MaskType>& lhs,
+                  const Branch<MaskType>& rhs) const {
     return lhs.mask < rhs.mask;
   }
 };
 
+template <typename MaskType>
 struct PartitionCmp {
-  bool operator()(const Partition& lhs, const Partition& rhs) const {
+  bool operator()(const Partition<MaskType>& lhs,
+                  const Partition<MaskType>& rhs) const {
     return std::lexicographical_compare(
         lhs.branches.begin(), lhs.branches.end(), rhs.branches.begin(),
-        rhs.branches.end(), BranchCmp{});
+        rhs.branches.end(), BranchCmp<MaskType>{});
   }
 };
 
+template <typename MaskType>
 struct PartitionEq {
-  bool operator()(const Partition& lhs, const Partition& rhs) const {
+  bool operator()(const Partition<MaskType>& lhs,
+                  const Partition<MaskType>& rhs) const {
     const auto& lb = lhs.branches;
     const auto& rb = rhs.branches;
     return lb.size() == rb.size() &&
@@ -31,20 +37,20 @@ struct PartitionEq {
   }
 };
 
-void SortPartition(Partition& p) {
-  std::sort(p.branches.begin(), p.branches.end(), BranchCmp{});
+void SortPartition(FullPartition& p) {
+  std::sort(p.branches.begin(), p.branches.end(), BranchCmp<State>{});
   std::reverse(p.branches.begin(), p.branches.end());
 }
 
-void SortPartitions(std::vector<Partition>& ps) {
-  for (Partition& p : ps) {
+void SortPartitions(std::vector<FullPartition>& ps) {
+  for (FullPartition& p : ps) {
     SortPartition(p);
   }
-  std::sort(ps.begin(), ps.end(), PartitionCmp{});
+  std::sort(ps.begin(), ps.end(), PartitionCmp<State>{});
 }
 
-Partition MakeRootPartition(Word guess) {
-  Partition p;
+FullPartition MakeRootPartition(Word guess) {
+  FullPartition p;
   p.word = guess;
   absl::flat_hash_map<Colors, std::bitset<kNumTargets>> parts;
   int tidx = 0;
@@ -65,20 +71,20 @@ Partition MakeRootPartition(Word guess) {
 
 }  // namespace
 
-PartitionMap::PartitionMap() {
+FullPartitionMap::FullPartitionMap() {
   for (Word w : Word::AllWords()) {
     all_partitions_.push_back(MakeRootPartition(w));
   }
   SortPartitions(all_partitions_);
 }
 
-std::vector<Partition> PartitionMap::SubPartitions(const State& in,
-                                                   bool sort_uniq) const {
-  std::vector<Partition> result;
-  for (const Partition& p : all_partitions_) {
-    Partition filtered;
+std::vector<FullPartition> FullPartitionMap::SubPartitions(
+    const State& in, bool sort_uniq) const {
+  std::vector<FullPartition> result;
+  for (const FullPartition& p : all_partitions_) {
+    FullPartition filtered;
     filtered.word = p.word;
-    for (const Branch& b : p.branches) {
+    for (const FullBranch& b : p.branches) {
       State mix = in & b.mask;
       int c = mix.count();
       if (c == in.count()) {
@@ -101,8 +107,9 @@ std::vector<Partition> PartitionMap::SubPartitions(const State& in,
   }
   if (sort_uniq) {
     SortPartitions(result);
-    result.erase(std::unique(result.begin(), result.end(), PartitionEq{}),
-                 result.end());
+    result.erase(
+        std::unique(result.begin(), result.end(), PartitionEq<State>{}),
+        result.end());
   }
   return result;
 };

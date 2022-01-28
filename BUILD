@@ -76,5 +76,6 @@ cc_binary(
     srcs = ["state_count.cc"],
     deps = [
         ":partition_map",
+        "@absl//absl/synchronization",
     ],
 )

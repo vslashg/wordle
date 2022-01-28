@@ -8,7 +8,7 @@
 using namespace wordle;
 
 int main(int argc, char** argv) {
-  const PartitionMap& pm = PartitionMap::Singleton();
+  const FullPartitionMap& pm = FullPartitionMap::Singleton();
   auto sp = pm.SubPartitions(wordle::State::AllBits());
   if (argc == 2) {
     Word input(argv[1]);
@@ -26,7 +26,7 @@ int main(int argc, char** argv) {
     std::cout << "Colors? ";
     std::cin >> colors;
     Colors c(colors);
-    for (const Branch& b : sp.front().branches) {
+    for (const FullBranch& b : sp.front().branches) {
       if (b.colors == c) {
         std::cout << b.mask.count() << " left, exemplar " << b.mask.Exemplar()
                   << "\n";
