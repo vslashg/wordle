@@ -76,9 +76,11 @@ std::vector<Branch> ScoreWord(Word guess, StateIndexer& vowel_indexer,
     Colors full_colors = ColorGuess(guess, target);
     Colors vowel_colors = ColorGuess(vowel_guess, full_target);
     Colors consonant_colors = ColorGuess(consonant_guess, full_target);
-    splits[full_colors] = std::make_pair(vowel_colors, consonant_colors);
     vowel_masks[vowel_colors].set(idx);
     consonant_masks[consonant_colors].set(idx);
+    if (target != guess) {
+      splits[full_colors] = std::make_pair(vowel_colors, consonant_colors);
+    }
     ++idx;
   }
 
