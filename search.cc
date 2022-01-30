@@ -135,7 +135,7 @@ void Plinko() {
 
 int main() {
   auto ps = pm.SubPartitions(wordle::State::AllBits());
-  std::cout << ps.size() << " partitions (should be " << wordle::kNumWords
+  std::cout << ps.size() << " partitions (should be " << wordle::kDictionarySize
             << ")\n";
   int count = 0;
   std::set<wordle::State> fb;

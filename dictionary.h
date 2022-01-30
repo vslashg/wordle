@@ -9,7 +9,7 @@ namespace wordle {
 
 constexpr int kNumTargets = 2315;
 constexpr int kNumNonTargets = 10657;
-constexpr int kNumWords = kNumTargets + kNumNonTargets;
+constexpr int kDictionarySize = kNumTargets + kNumNonTargets;
 
 class Word {
  public:

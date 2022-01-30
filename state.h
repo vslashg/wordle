@@ -16,6 +16,8 @@ using StateId = unsigned __int128;
 
 class State {
  public:
+  static constexpr int kNumWords = (kNumTargets + 63) / 64;
+
   State(const std::bitset<kNumTargets>& b) : State() {
     for (int i = 0; i < kNumTargets; ++i) {
       if (b[i]) {
@@ -125,7 +127,6 @@ class State {
   bool operator>(const State& r) const { return ToStateId() > r.ToStateId(); }
   bool operator>=(const State& r) const { return ToStateId() >= r.ToStateId(); }
 
-  static constexpr int kNumWords = (kNumTargets + 63) / 64;
   using Array = std::array<uint64_t, kNumWords>;
   const Array& array() const { return *words_; }
 

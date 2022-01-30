@@ -1,5 +1,5 @@
 #include "partition_map.h"
-// #include "raw_data.h"
+#include "raw_data.h"
 
 #include "absl/container/flat_hash_map.h"
 
@@ -82,14 +82,14 @@ FullPartitionMap::FullPartitionMap() {
 std::vector<FullPartition> FullPartitionMap::SubPartitions(
     const State& in) const {
   std::vector<FullPartition> result;
-  for (const FullPartition& p : all_partitions_) {
+  for (const raw::Guess& guess : raw::guesses) {
     FullPartition filtered;
-    filtered.word = p.word;
-    for (const FullBranch& b : p.branches) {
-      State mix = in & b.mask;
+    filtered.word = guess.word;
+    for (const raw::Indices& branch : guess.branches) {
+      State mix(in, branch.Mask1(), branch.Mask2());
       int c = mix.count();
-      if (c > 0 || c != in.count()) {
-        filtered.branches.push_back({b.colors, std::move(mix)});
+      if (c > 0 && c != in.count()) {
+        filtered.branches.push_back({branch.colors, std::move(mix)});
       }
     }
     if (!filtered.branches.empty()) {

@@ -55,6 +55,7 @@ cc_library(
         ":dictionary",
         ":color_guess",
         ":state",
+        ":raw_data",
         "@absl//absl/container:flat_hash_map",
     ],
 )

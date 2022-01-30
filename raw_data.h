@@ -26,9 +26,9 @@ struct Indices {
 };
 
 struct Guess {
-  constexpr Guess(int word, const Indices* ptr, int len)
-      : w(word), branches(ptr, len) {}
-  wordle::Word w;
+  constexpr Guess(int w, const Indices* ptr, int len)
+      : word(w), branches(ptr, len) {}
+  wordle::Word word;
   absl::Span<const Indices> branches;
 };
 
