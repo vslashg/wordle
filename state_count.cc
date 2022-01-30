@@ -8,12 +8,10 @@
 
 using namespace wordle;
 
-const FullPartitionMap& pm = FullPartitionMap::Singleton();
-
 void concoct(int cap) {
   std::set<wordle::State> all_masks;
   int full_count = 0;
-  for (FullPartition& p : pm.SubPartitions(wordle::State::AllBits())) {
+  for (FullPartition& p : SubPartitions(wordle::State::AllBits())) {
     full_count += p.branches.size();
     for (FullBranch& b : p.branches) {
       all_masks.emplace(std::move(b.mask));

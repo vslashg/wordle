@@ -36,24 +36,7 @@ struct Partition {
 using FullPartition = Partition<State>;
 using FullBranch = Branch<State>;
 
-class FullPartitionMap {
- public:
-  static const FullPartitionMap& Singleton() {
-    static FullPartitionMap pm;
-    return pm;
-  }
-
-  const std::vector<FullPartition>& AllPartitions() const {
-    return all_partitions_;
-  }
-
-  std::vector<FullPartition> SubPartitions(const State& input) const;
-
- private:
-  FullPartitionMap();
-
-  std::vector<FullPartition> all_partitions_;
-};
+std::vector<FullPartition> SubPartitions(const State& input);
 
 template <int N>
 class ThinPartitionMap {

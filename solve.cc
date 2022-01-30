@@ -10,8 +10,7 @@
 using namespace wordle;
 
 int main(int argc, char** argv) {
-  const FullPartitionMap& pm = FullPartitionMap::Singleton();
-  auto sp = pm.SubPartitions(wordle::State::AllBits());
+  auto sp = SubPartitions(wordle::State::AllBits());
   if (argc == 2) {
     Word input(argv[1]);
     // forced first guess
@@ -40,7 +39,7 @@ int main(int argc, char** argv) {
                     << (double(score) / b.mask.count()) << ", time "
                     << (time2 - time1) / absl::Milliseconds(1) << "ms\n";
         }
-        sp = pm.SubPartitions(b.mask);
+        sp = SubPartitions(b.mask);
         break;
       }
     }

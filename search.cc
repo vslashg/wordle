@@ -10,8 +10,6 @@
 #include "thread_pool.h"
 #include "state.h"
 
-const wordle::FullPartitionMap& pm = wordle::FullPartitionMap::Singleton();
-
 absl::Mutex memomap_mu;
 
 template <>
@@ -82,7 +80,7 @@ int BestScore(const wordle::State& s, int limit, int depth) {
   if (simple_limit >= limit) return kOver;
   if (s.count() < 3) return simple_limit;
 
-  auto partitions = pm.SubPartitions(s);
+  auto partitions = SubPartitions(s);
   dstep[depth] = 0;
   dmax[depth] = partitions.size();
   dbest[depth] = 9999;
@@ -134,7 +132,7 @@ void Plinko() {
 }
 
 int main() {
-  auto ps = pm.SubPartitions(wordle::State::AllBits());
+  auto ps = SubPartitions(wordle::State::AllBits());
   std::cout << ps.size() << " partitions (should be " << wordle::kDictionarySize
             << ")\n";
   int count = 0;

@@ -50,37 +50,9 @@ void SortPartitions(std::vector<FullPartition>& ps) {
   std::sort(ps.begin(), ps.end(), PartitionCmp<State>{});
 }
 
-FullPartition MakeRootPartition(Word guess) {
-  FullPartition p;
-  p.word = guess;
-  absl::flat_hash_map<Colors, std::bitset<kNumTargets>> parts;
-  int tidx = 0;
-  for (Word target : Word::AllTargetWords()) {
-    if (guess != target) {
-      Colors c = ColorGuess(guess, target);
-      parts[c].set(tidx);
-    }
-    ++tidx;
-  }
-
-  for (auto& pair : parts) {
-    p.branches.push_back({pair.first, State(pair.second)});
-  }
-  SortPartition(p);
-  return p;
-}
-
 }  // namespace
 
-FullPartitionMap::FullPartitionMap() {
-  for (Word w : Word::AllWords()) {
-    all_partitions_.push_back(MakeRootPartition(w));
-  }
-  SortPartitions(all_partitions_);
-}
-
-std::vector<FullPartition> FullPartitionMap::SubPartitions(
-    const State& in) const {
+std::vector<FullPartition> SubPartitions(const State& in) {
   std::vector<FullPartition> result;
   for (const raw::Guess& guess : raw::guesses) {
     FullPartition filtered;

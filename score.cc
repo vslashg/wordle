@@ -2,8 +2,6 @@
 
 namespace wordle {
 
-const FullPartitionMap& pm = FullPartitionMap::Singleton();
-
 int ScoreStatePartition(const State& s, const FullPartition& p,
                         const std::atomic<int>* limit) {
   // The base score is one for each bit in `s`, indicating the
@@ -38,7 +36,7 @@ int ScoreState(const State& s, int limit, int num_threads) {
   if (simple_limit >= limit) return kOver;
   if (s.count() < 3) return simple_limit;
 
-  std::vector<FullPartition> partitions = pm.SubPartitions(s);
+  std::vector<FullPartition> partitions = SubPartitions(s);
   int best_so_far = kOver;
   for (const FullPartition& p : partitions) {
     int sc = ScoreStatePartition(s, p, limit);
