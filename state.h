@@ -24,6 +24,27 @@ class State {
     }
     bits_hash_ = absl::HashOf(*words_);
   }
+
+  State(const State& initial, const std::array<uint64_t, kNumWords>& m1,
+        const std::array<uint64_t, kNumWords>& m2)
+      : words_(std::make_unique<Array>()),
+        max_bit_index_(0),
+        min_bit_index_(kNumTargets),
+        num_bits_(0) {
+    for (int i = 0; i < kNumWords; ++i) {
+      uint64_t word = (*initial.words_)[i] & m1[i] & m2[i];
+      (*words_)[i] = word;
+      num_bits_ += __builtin_popcountll(word);
+      if (word != 0) {
+        max_bit_index_ = (64 * i) + 63 - absl::countl_zero(word);
+        if (min_bit_index_ == kNumTargets) {
+          min_bit_index_ = (64 * i) + absl::countr_zero(word);
+        }
+      }
+    }
+    bits_hash_ = absl::HashOf(*words_);
+  }
+
   State(const State&) = delete;
   State(State&&) = default;
   State& operator=(const State&) = delete;
@@ -136,6 +157,48 @@ class State {
   uint16_t max_bit_index_ = 0;
   uint16_t min_bit_index_ = kNumTargets;
   uint32_t num_bits_;
+};
+
+// A thin state is like State, but with its bitmask collapsed to a much smaller
+// set of legal words.
+template <int N>
+class ThinState {
+ public:
+  ThinState() {
+    std::fill(words_.begin(), words_.end(), uint64_t{0});
+  }
+
+  ThinState(const ThinState&) = default;
+  ThinState& operator=(const ThinState&) = default;
+
+  friend ThinState operator&(const ThinState& l, const ThinState& r) {
+    ThinState ts(Uninitialized{});
+    for (int i = 0; i < N; ++i) {
+      ts.words_[i] = l.words_[i] & r.words_[i];
+    }
+    return ts;
+  }
+
+  bool empty() const {
+    for (uint64_t word : words_) {
+      if (word) return false;
+    }
+    return true;
+  }
+
+  int count() const {
+    int ans = 0;
+    for (uint64_t word : words_) {
+      ans += absl::popcount(word);
+    }
+    return ans;
+  }
+
+ private:
+  struct Uninitialized {};
+  ThinState(Uninitialized) {};
+
+  std::array<uint64_t, N> words_;
 };
 
 }  // namespace wordle

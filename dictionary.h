@@ -9,6 +9,7 @@ namespace wordle {
 
 constexpr int kNumTargets = 2315;
 constexpr int kNumNonTargets = 10657;
+constexpr int kNumWords = kNumTargets + kNumNonTargets;
 
 class Word {
  public:
@@ -17,7 +18,7 @@ class Word {
   // Constructs the given word.  If this word does not exist in the dictionary,
   // this constructs the sentinel word ????? instead.
   Word(std::string_view s);
-  Word(int i) : index_(i) {}
+  constexpr Word(int i) : index_(i) {}
 
   Word(const Word&) = default;
   Word& operator=(const Word&) = default;
@@ -34,6 +35,7 @@ class Word {
   bool IsValid() const { return !IsSentinel(); }
 
   const char* ToString() const;
+  int ToIndex() const { return index_; }
 
   friend std::ostream& operator<<(std::ostream& os, const Word& w) {
     return os << w.ToString();

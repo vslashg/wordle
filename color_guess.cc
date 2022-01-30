@@ -13,9 +13,13 @@ Colors::Colors(std::string_view s) : value_(0) {
 }
 
 Colors ColorGuess(Word guess, Word target) {
-  std::string g = guess.ToString();
-  std::string t = target.ToString();
+  return ColorGuess(guess.ToString(), target.ToString());
+}
+
+Colors ColorGuess(const char* guess, const char* target) {
   Colors ans;
+  std::string g = guess;
+  std::string t = target;
   // exact matches
   for (int i = 0; i < 5; ++i) {
     if (g[i] == t[i]) {

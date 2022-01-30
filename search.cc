@@ -8,6 +8,7 @@
 #include "folly/container/EvictingCacheMap.h"
 #include "partition_map.h"
 #include "thread_pool.h"
+#include "state.h"
 
 const wordle::FullPartitionMap& pm = wordle::FullPartitionMap::Singleton();
 
@@ -133,6 +134,21 @@ void Plinko() {
 }
 
 int main() {
+  auto ps = pm.SubPartitions(wordle::State::AllBits());
+  std::cout << ps.size() << " partitions (should be " << wordle::kNumWords
+            << ")\n";
+  int count = 0;
+  std::set<wordle::State> fb;
+  for (auto& pt : ps) {
+    count += pt.branches.size();
+    for (auto& br : pt.branches) {
+      fb.insert(std::move(br.mask));
+    }
+  }
+  std::cout << count << " branches among them (branch factor "
+            << double(count) / ps.size() << ")\n";
+  std::cout << fb.size() << " unique branches\n";
+  
   std::thread t(Plinko);
   std::cout << "\n\n" << BestScore(wordle::State::AllBits()) << "\n\n";
 }

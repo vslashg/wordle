@@ -10,12 +10,15 @@ namespace wordle {
 
 class Colors {
  public:
-  Colors() : value_(0) {}
+  constexpr Colors() : value_(0) {}
+  constexpr Colors(uint16_t v) : value_(v) {}
   Colors(std::string_view sv);
   Colors(const Colors&) = default;
   Colors(Colors&&) = default;
   Colors& operator=(const Colors&) = default;
   Colors& operator=(Colors&&) = default;
+
+  int ToInt() const { return value_; }
 
   int Get(int i) const {
     int v = value_ >> (i * 2);
@@ -36,6 +39,7 @@ class Colors {
 
   bool operator==(const Colors& r) const { return value_ == r.value_; }
   bool operator!=(const Colors& r) const { return value_ != r.value_; }
+  bool operator<(const Colors& r) const { return value_ < r.value_; }
   template <typename H>
   friend H AbslHashValue(H h, const Colors& r) {
     return H::combine(std::move(h), r.value_);
@@ -48,5 +52,9 @@ class Colors {
 // Return an object representing the color output of a given guess vs a given
 // target.  This is not fast, but it doesn't need to be.
 Colors ColorGuess(Word guess, Word target);
+
+// const char* version of the above.  Both arguments must be 5 characters long;
+// this is not checked.
+Colors ColorGuess(const char* guess, const char* target);
 
 }  // namespace wordle

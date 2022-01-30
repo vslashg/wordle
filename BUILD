@@ -17,6 +17,36 @@ cc_library(
     deps = [":dictionary"]
 )
 
+cc_binary(
+    name = "generate_tables",
+    srcs = ["generate_tables.cc"],
+    deps = [
+        ":state",
+        ":color_guess",
+        ":dictionary",
+        "@absl//absl/container:flat_hash_map",
+    ],
+)
+
+genrule(
+  name = "raw_data_source",
+  srcs = [],
+  outs = ["raw_data.cc"],
+  cmd = "./$(execpath :generate_tables) > $@",
+  tools = [":generate_tables"],
+)
+
+cc_library(
+  name = "raw_data",
+  hdrs = ["raw_data.h"],
+  srcs = [":raw_data.cc"],
+  deps = [
+    ":color_guess",
+    ":dictionary",
+    "@absl//absl/types:span",
+  ],
+)
+
 cc_library(
     name = "partition_map",
     srcs = ["partition_map.cc"],
