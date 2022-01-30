@@ -99,6 +99,7 @@ cc_binary(
     deps = [
         ":partition_map",
         ":score",
+        "@absl//absl/time",
     ],
 )
 

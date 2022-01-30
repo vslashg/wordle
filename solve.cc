@@ -4,6 +4,8 @@
 
 #include "partition_map.h"
 #include "score.h"
+#include "absl/time/time.h"
+#include "absl/time/clock.h"
 
 using namespace wordle;
 
@@ -30,10 +32,13 @@ int main(int argc, char** argv) {
       if (b.colors == c) {
         std::cout << b.mask.count() << " left, exemplar " << b.mask.Exemplar()
                   << "\n";
-        if (b.mask.count() < 100) {
+        if (b.mask.count() < 200) {
+          auto time1 = absl::Now();
           int score = ScoreState(b.mask);
+          auto time2 = absl::Now();
           std::cout << "Score " << score << ", EV "
-                    << (double(score) / b.mask.count()) << "\n";
+                    << (double(score) / b.mask.count()) << ", time "
+                    << (time2 - time1) / absl::Milliseconds(1) << "ms\n";
         }
         sp = pm.SubPartitions(b.mask);
         break;
