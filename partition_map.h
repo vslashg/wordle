@@ -47,8 +47,7 @@ class FullPartitionMap {
     return all_partitions_;
   }
 
-  std::vector<FullPartition> SubPartitions(const State& input,
-                                           bool sort_uniq = true) const;
+  std::vector<FullPartition> SubPartitions(const State& input) const;
 
  private:
   FullPartitionMap();

@@ -1,4 +1,5 @@
 #include "partition_map.h"
+// #include "raw_data.h"
 
 #include "absl/container/flat_hash_map.h"
 
@@ -79,7 +80,7 @@ FullPartitionMap::FullPartitionMap() {
 }
 
 std::vector<FullPartition> FullPartitionMap::SubPartitions(
-    const State& in, bool sort_uniq) const {
+    const State& in) const {
   std::vector<FullPartition> result;
   for (const FullPartition& p : all_partitions_) {
     FullPartition filtered;
@@ -87,30 +88,17 @@ std::vector<FullPartition> FullPartitionMap::SubPartitions(
     for (const FullBranch& b : p.branches) {
       State mix = in & b.mask;
       int c = mix.count();
-      if (c == in.count()) {
-        if (!sort_uniq) {
-          // only emit no-op move when sort_uniq off
-          filtered.branches.push_back({b.colors, std::move(mix)});
-        }
-      } else if (c > 0) {
+      if (c > 0 || c != in.count()) {
         filtered.branches.push_back({b.colors, std::move(mix)});
       }
     }
     if (!filtered.branches.empty()) {
-      if (!sort_uniq) {
-        // We don't want to uniquify answers in the mode, but we still want
-        // the biggest chunks up front.
-        SortPartition(filtered);
-      }
       result.push_back(std::move(filtered));
     }
   }
-  if (sort_uniq) {
-    SortPartitions(result);
-    result.erase(
-        std::unique(result.begin(), result.end(), PartitionEq<State>{}),
-        result.end());
-  }
+  SortPartitions(result);
+  result.erase(std::unique(result.begin(), result.end(), PartitionEq<State>{}),
+               result.end());
   return result;
 };
 
