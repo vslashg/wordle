@@ -3,6 +3,7 @@
 #include <string_view>
 
 #include "partition_map.h"
+#include "reduced_map.h"
 #include "score.h"
 #include "absl/time/time.h"
 #include "absl/time/clock.h"
@@ -33,11 +34,13 @@ int main(int argc, char** argv) {
                   << "\n";
         if (b.mask.count() < 200) {
           auto time1 = absl::Now();
-          int score = ScoreState(b.mask);
+          ReducedPartitions<4> rp(b.mask);
           auto time2 = absl::Now();
-          std::cout << "Score " << score << ", EV "
-                    << (double(score) / b.mask.count()) << ", time "
-                    << (time2 - time1) / absl::Milliseconds(1) << "ms\n";
+          std::cout << (time2 - time1) / absl::Milliseconds(1) << "ms\n";
+          // int score = ScoreState(b.mask);
+          // std::cout << "Score " << score << ", EV "
+          //           << (double(score) / b.mask.count()) << ", time "
+          //           << (time2 - time1) / absl::Milliseconds(1) << "ms\n";
         }
         sp = SubPartitions(b.mask);
         break;

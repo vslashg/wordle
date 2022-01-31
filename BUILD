@@ -81,6 +81,12 @@ cc_library(
     ]
 )
 
+cc_library(
+    name = "reduced_map",
+    hdrs = ["reduced_map.h"],
+    deps = [],
+)
+
 cc_binary(
     name = "search",
     srcs = ["search.cc"],
@@ -98,6 +104,7 @@ cc_binary(
     srcs = ["solve.cc"],
     deps = [
         ":partition_map",
+        ":reduced_map",
         ":score",
         "@absl//absl/time",
     ],
