@@ -54,4 +54,9 @@ inline int ScoreStatePartition(const State& s, const FullPartition& p,
   return ScoreStatePartition(s, p, &a);
 }
 
+// ScoreState but using a reduced map.
+//
+// XXXX s.count() <= 256
+int PackedScoreState(const State& s, int limit = kScoreLimit);
+
 }  // namespace wordle

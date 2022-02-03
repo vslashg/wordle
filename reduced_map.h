@@ -25,6 +25,16 @@ class BitReducer {
     return Reduce<N>(state.array());
   }
 
+  template <int N>
+  Word Exemplar(const std::array<uint64_t, N>& state) const {
+    for (int i = 0; i < N; ++i) {
+      if (state[i]) {
+        return words_[64 * i + absl::countr_zero(state[i])];
+      }
+    }
+    return Word();
+  }
+
  private:
   struct ReduceStep {
     uint64_t select_mask;
@@ -36,34 +46,51 @@ class BitReducer {
   std::vector<Word> words_;
 };
 
-struct ReducedBranch {
+struct PackedReducedBranch {
   Colors colors;
   uint16_t vowel_index;
   uint16_t consonant_index;
   uint16_t num_bits;
 
   struct LongFirst {
-    bool operator()(const ReducedBranch& lhs, const ReducedBranch& rhs) const {
-      return std::make_tuple(-int(lhs.num_bits), lhs.vowel_index,
-                             lhs.consonant_index) <
-             std::make_tuple(-int(rhs.num_bits), rhs.vowel_index,
-                             rhs.consonant_index);
+    bool operator()(const PackedReducedBranch& lhs,
+                    const PackedReducedBranch& rhs) const {
+      return std::tie(lhs.num_bits, lhs.vowel_index, lhs.consonant_index) >
+             std::tie(rhs.num_bits, rhs.vowel_index, rhs.consonant_index);
     }
   };
   struct ShortFirst {
-    bool operator()(const ReducedBranch& lhs, const ReducedBranch& rhs) const {
-      return std::make_tuple(int(lhs.num_bits), lhs.vowel_index,
-                             lhs.consonant_index) <
-             std::make_tuple(int(rhs.num_bits), rhs.vowel_index,
-                             rhs.consonant_index);
+    bool operator()(const PackedReducedBranch& lhs,
+                    const PackedReducedBranch& rhs) const {
+      return std::tie(lhs.num_bits, lhs.vowel_index, lhs.consonant_index) <
+             std::tie(rhs.num_bits, rhs.vowel_index, rhs.consonant_index);
     }
   };
   struct MaskEq {
-    bool operator()(const ReducedBranch& lhs, const ReducedBranch& rhs) const {
+    bool operator()(const PackedReducedBranch& lhs,
+                    const PackedReducedBranch& rhs) const {
       return lhs.vowel_index == rhs.vowel_index &&
              lhs.consonant_index == rhs.consonant_index;
     }
   };
+};
+
+struct PackedReducedGuess {
+  Word word;
+  std::vector<PackedReducedBranch> branches;
+};
+
+template <int num_words>
+struct ReducedBranch {
+  Colors colors;
+  uint16_t num_bits;
+  std::array<uint64_t, num_words> mask;
+};
+
+template <int num_words>
+struct ReducedGuess {
+  Word word;
+  std::vector<ReducedBranch<num_words>> branches;
 };
 
 template <int num_words>
@@ -106,27 +133,38 @@ class ReducedMaskTable {
 template <int num_words>
 class ReducedPartitions {
  public:
-  struct Guess {
-    Word word;
-    std::vector<ReducedBranch> branches;
-  };
-
   ReducedPartitions(const State& mask)
       : reducer_(mask),
         vowel_masks_(raw::vowel_masks, reducer_),
         consonant_masks_(raw::consonant_masks, reducer_) {
+    if (mask.count() > 64 * num_words) {
+      __builtin_trap();
+    }
+    {
+      int i = 0;
+      int bits = mask.count();
+      while (bits >= 64) {
+        full_mask_[i] = 0xffffffffffffffff;
+        bits -= 64;
+        ++i;
+      }
+      if (bits > 0) {
+        full_mask_[i] = (uint64_t{1} << bits) - 1;
+      }
+    }
+/*
     std::cout << "Vowel masks reduced from " << 13912 << " to "
               << vowel_masks_.size() << "\n";
     std::cout << "Consonant masks reduced from " << 36237 << " to "
               << consonant_masks_.size() << "\n";
-    
+*/  
     int total_branch_count_debug = 0;
     int reduced_branch_count_debug = 0;
     for (const raw::Guess& raw_guess : raw::guesses) {
-      Guess reduced_guess;
+      PackedReducedGuess reduced_guess;
       reduced_guess.word = raw_guess.word;
       for (const raw::Indices& branch : raw_guess.branches) {
-        ReducedBranch br = Reduce(branch);
+        PackedReducedBranch br = Reduce(branch);
         ++total_branch_count_debug;
         if (br.num_bits != 0 && br.num_bits < mask.count()) {
           reduced_guess.branches.push_back(br);
@@ -134,34 +172,56 @@ class ReducedPartitions {
         }
       }
       if (!reduced_guess.branches.empty()) {
+        /* XXXDEBUG
+        int ccc = 0;
+        for (const PackedReducedBranch& br : reduced_guess.branches) {
+          ccc += br.num_bits;
+        }
+        if (ccc != mask.count() && ccc != (mask.count() - 1)) {
+          __builtin_trap();
+        }
+        XXXDEBUG */
         std::sort(reduced_guess.branches.begin(), reduced_guess.branches.end(),
-                  ReducedBranch::ShortFirst{});
+                  PackedReducedBranch::ShortFirst{});
         guesses_.push_back(reduced_guess);
       }
     }
-    auto guess_lt = [](const Guess& lhs, const Guess& rhs) {
+    auto guess_lt = [](const PackedReducedGuess& lhs,
+                       const PackedReducedGuess& rhs) {
       return std::lexicographical_compare(
           lhs.branches.begin(), lhs.branches.end(), rhs.branches.begin(),
-          rhs.branches.end(), ReducedBranch::LongFirst{});
+          rhs.branches.end(), PackedReducedBranch::LongFirst{});
     };
     std::sort(guesses_.begin(), guesses_.end(), guess_lt);
 
-    auto guess_eq = [](const Guess& lhs, const Guess& rhs) {
+    auto guess_eq = [](const PackedReducedGuess& lhs,
+                       const PackedReducedGuess& rhs) {
       return lhs.branches.size() == rhs.branches.size() &&
              std::equal(lhs.branches.begin(), lhs.branches.end(),
-                        rhs.branches.begin(), ReducedBranch::MaskEq{});
+                        rhs.branches.begin(), PackedReducedBranch::MaskEq{});
     };
     guesses_.erase(std::unique(guesses_.begin(), guesses_.end(), guess_eq),
                    guesses_.end());
+/*
     std::cout << "Guesses reduced from " << kNumTargets + kNumNonTargets
               << " to " << guesses_.size() << "\n";
     std::cout << "Total branches reduced from " << total_branch_count_debug
               << " to " << reduced_branch_count_debug << "\n";
+*/
   }
 
+  const std::array<uint64_t, num_words>& FullMask() const { return full_mask_; }
+
+  Word Exemplar(const std::array<uint64_t, num_words>& state) const {
+    return reducer_.Exemplar<4>(state);
+  }
+
+  std::vector<ReducedGuess<num_words>> SubPartitions(
+      const std::array<uint64_t, num_words>& input) const;
+
  private:
-  ReducedBranch Reduce(const raw::Indices& ri) const {
-    ReducedBranch reduced;
+  PackedReducedBranch Reduce(const raw::Indices& ri) const {
+    PackedReducedBranch reduced;
     reduced.colors = ri.colors;
     reduced.vowel_index = vowel_masks_.ReduceFullIndex(ri.vowel_index);
     reduced.consonant_index =
@@ -178,15 +238,30 @@ class ReducedPartitions {
     return reduced;
   }
 
+  std::array<uint64_t, num_words> MaskState(
+      const std::array<uint64_t, num_words>& state,
+      const PackedReducedBranch& branch) const {
+    std::array<uint64_t, num_words> result = state;
+    const std::array<uint64_t, num_words> vowel_mask =
+        vowel_masks_.LookupByReducedIndex(branch.vowel_index);
+    const std::array<uint64_t, num_words> consonant_mask =
+        consonant_masks_.LookupByReducedIndex(branch.consonant_index);
+    for (int i = 0; i < num_words; ++i) {
+      result[i] &= vowel_mask[i] & consonant_mask[i];
+    }
+    return result;
+  }
+
   BitReducer reducer_;
   ReducedMaskTable<num_words> vowel_masks_;
   ReducedMaskTable<num_words> consonant_masks_;
-  std::vector<Guess> guesses_;
+  std::vector<PackedReducedGuess> guesses_;
+  std::array<uint64_t, num_words> full_mask_ = {{0}};
 };
 
 ////////
 
-BitReducer::BitReducer(const std::array<uint64_t, 37>& mask) {
+inline BitReducer::BitReducer(const std::array<uint64_t, 37>& mask) {
   int cur_target = 0;
   int cur_shift = 0;
   for (int word_i = 0; word_i < State::kNumWords; ++word_i) {
@@ -228,6 +303,68 @@ std::array<uint64_t, N> BitReducer::Reduce(
     out[step.target_word] |= bits;
   }
   return out;
+}
+
+template <int num_words>
+std::vector<ReducedGuess<num_words>>
+ReducedPartitions<num_words>::SubPartitions(
+    const std::array<uint64_t, num_words>& input) const {
+  std::vector<ReducedGuess<num_words>> result;
+  for (const PackedReducedGuess& packed_guess : guesses_) {
+    result.emplace_back();
+    ReducedGuess<num_words>& guess = result.back();
+    for (const PackedReducedBranch& packed_branch : packed_guess.branches) {
+      guess.branches.emplace_back();
+      ReducedBranch<num_words>& branch = guess.branches.back();
+      branch.mask = MaskState(input, packed_branch);
+      branch.num_bits = 0;
+      for (uint64_t word : branch.mask) {
+        branch.num_bits += absl::popcount(word);
+      }
+      if (branch.num_bits == 0 || branch.mask == input) {
+        guess.branches.pop_back();
+      } else {
+        branch.colors = packed_branch.colors;
+      }
+    }
+    if (guess.branches.empty()) {
+      result.pop_back();
+    } else {
+      guess.word = packed_guess.word;
+      std::sort(guess.branches.begin(), guess.branches.end(),
+                [](const ReducedBranch<num_words>& lhs,
+                   const ReducedBranch<num_words>& rhs) {
+                  return std::tie(lhs.num_bits, lhs.mask) >
+                         std::tie(rhs.num_bits, rhs.mask);
+                });
+    }
+  }
+  std::sort(result.begin(), result.end(),
+            [](const ReducedGuess<num_words>& lhs,
+               const ReducedGuess<num_words>& rhs) {
+              return std::lexicographical_compare(
+                  lhs.branches.begin(), lhs.branches.end(),
+                  rhs.branches.begin(), rhs.branches.end(),
+                  [](const ReducedBranch<num_words>& lhs,
+                     const ReducedBranch<num_words>& rhs) {
+                    return std::tie(lhs.num_bits, lhs.mask) <
+                           std::tie(rhs.num_bits, rhs.mask);
+                  });
+            });
+  result.erase(
+      std::unique(result.begin(), result.end(),
+                  [](const ReducedGuess<num_words>& lhs,
+                     const ReducedGuess<num_words>& rhs) {
+                    return lhs.branches.size() == rhs.branches.size() &&
+                           std::equal(lhs.branches.begin(), lhs.branches.end(),
+                                      rhs.branches.begin(),
+                                      [](const ReducedBranch<num_words>& lhs,
+                                         const ReducedBranch<num_words>& rhs) {
+                                        return lhs.mask == rhs.mask;
+                                      });
+                  }),
+      result.end());
+  return result;
 }
 
 }  // namespace wordle

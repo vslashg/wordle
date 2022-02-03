@@ -7,44 +7,47 @@ cc_library(
 cc_library(
     name = "state",
     hdrs = ["state.h"],
-    deps = ["@absl//absl/numeric:bits", "@absl//absl/hash"],
+    deps = [
+        "@absl//absl/hash",
+        "@absl//absl/numeric:bits",
+    ],
 )
 
 cc_library(
     name = "color_guess",
     srcs = ["color_guess.cc"],
     hdrs = ["color_guess.h"],
-    deps = [":dictionary"]
+    deps = [":dictionary"],
 )
 
 cc_binary(
     name = "generate_tables",
     srcs = ["generate_tables.cc"],
     deps = [
-        ":state",
         ":color_guess",
         ":dictionary",
+        ":state",
         "@absl//absl/container:flat_hash_map",
     ],
 )
 
 genrule(
-  name = "raw_data_source",
-  srcs = [],
-  outs = ["raw_data.cc"],
-  cmd = "./$(execpath :generate_tables) > $@",
-  tools = [":generate_tables"],
+    name = "raw_data_source",
+    srcs = [],
+    outs = ["raw_data.cc"],
+    cmd = "./$(execpath :generate_tables) > $@",
+    tools = [":generate_tables"],
 )
 
 cc_library(
-  name = "raw_data",
-  hdrs = ["raw_data.h"],
-  srcs = [":raw_data.cc"],
-  deps = [
-    ":color_guess",
-    ":dictionary",
-    "@absl//absl/types:span",
-  ],
+    name = "raw_data",
+    srcs = [":raw_data.cc"],
+    hdrs = ["raw_data.h"],
+    deps = [
+        ":color_guess",
+        ":dictionary",
+        "@absl//absl/types:span",
+    ],
 )
 
 cc_library(
@@ -52,10 +55,10 @@ cc_library(
     srcs = ["partition_map.cc"],
     hdrs = ["partition_map.h"],
     deps = [
-        ":dictionary",
         ":color_guess",
-        ":state",
+        ":dictionary",
         ":raw_data",
+        ":state",
         "@absl//absl/container:flat_hash_map",
     ],
 )
@@ -64,8 +67,8 @@ cc_library(
     name = "thread_pool",
     hdrs = ["thread_pool.h"],
     deps = [
-        "@absl//absl/functional:function_ref",
         "@absl//absl/algorithm:container",
+        "@absl//absl/functional:function_ref",
         "@absl//absl/synchronization",
     ],
 )
@@ -77,8 +80,9 @@ cc_library(
     deps = [
         ":dictionary",
         ":partition_map",
+        ":reduced_map",
         ":state",
-    ]
+    ],
 )
 
 cc_library(
@@ -91,11 +95,12 @@ cc_binary(
     name = "search",
     srcs = ["search.cc"],
     deps = [
-        ":partition_map",
         ":color_guess",
+        ":partition_map",
         ":thread_pool",
+        ":score",
         "@absl//absl/time",
-        "@folly//:folly",
+        "@folly",
     ],
 )
 

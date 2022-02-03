@@ -8,6 +8,7 @@
 #include "folly/container/EvictingCacheMap.h"
 #include "partition_map.h"
 #include "thread_pool.h"
+#include "score.h"
 #include "state.h"
 
 absl::Mutex memomap_mu;
@@ -79,6 +80,20 @@ int BestScore(const wordle::State& s, int limit, int depth) {
   int simple_limit = s.count() * 2 - 1;
   if (simple_limit >= limit) return kOver;
   if (s.count() < 3) return simple_limit;
+  if (s.count() < 257) {
+    int res = wordle::PackedScoreState(s, limit);
+    if (res < limit) {
+      absl::MutexLock lock(&memomap_mu);
+      if (memomap.insert(s.ToStateId(), res).second) {
+        ++dnew;
+      } else {
+        ++dwasted;
+      }
+    } else {
+      ++dover;
+    }
+    return res;
+  }
 
   auto partitions = SubPartitions(s);
   dstep[depth] = 0;
@@ -148,5 +163,8 @@ int main() {
   std::cout << fb.size() << " unique branches\n";
   
   std::thread t(Plinko);
-  std::cout << "\n\n" << BestScore(wordle::State::AllBits()) << "\n\n";
+  t.detach();
+  int score = BestScore(wordle::State::AllBits());
+  std::cout << "\n\n" << "best sc=" << score << "\n\n";
+  std::cout << "best wd=" << dword[0] << std::endl;
 }
