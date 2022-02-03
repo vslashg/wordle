@@ -5,7 +5,7 @@
 namespace wordle {
 
 int ScoreStatePartition(const State& s, const FullPartition& p,
-                        const std::atomic<int>* limit) {
+                                 const std::atomic<int>* limit) {
   // The base score is one for each bit in `s`, indicating the
   // guess we're about to make.
   int score = s.count();
@@ -28,38 +28,21 @@ int ScoreStatePartition(const State& s, const FullPartition& p,
     score -= 2 * b.mask.count() - 1;
     // Recursively call BestScore, subtracting out our score so far from the
     // limit that we pass to the child.
-    score += ScoreState(b.mask, limit->load() - score);
+    score += ScoreState(b.mask, limit->load() - score).first;
   }
   return score;
-}
-
-int ScoreState(const State& s, int limit) {
-  int simple_limit = s.count() * 2 - 1;
-  if (simple_limit >= limit) return kOver;
-  if (s.count() < 3) return simple_limit;
-
-  std::vector<FullPartition> partitions = SubPartitions(s);
-  int best_so_far = kOver;
-  for (const FullPartition& p : partitions) {
-    int sc = ScoreStatePartition(s, p, limit);
-    if (sc < limit) {
-      limit = sc;
-      best_so_far = sc;
-    }
-  }
-  return best_so_far;
 }
 
 namespace {
 
 template <int N>
-int PackedScoreState(const ReducedPartitions<N>& rpm,
-                     const std::array<uint64_t, N>& s, int count, int limit);
+ScoreResult PackedScoreState(const ReducedPartitions<N>& rpm,
+                              const std::array<uint64_t, N>& s, int count,
+                              int limit);
 
 template <int N>
 int PackedScoreStatePartition(const ReducedPartitions<N>& rpm,
-                              const std::array<uint64_t, N>& s,
-                              int count,
+                              const std::array<uint64_t, N>& s, int count,
                               const ReducedGuess<N>& p, int limit) {
   // The base score is one for each bit in `s`, indicating the
   // guess we're about to make.
@@ -83,33 +66,32 @@ int PackedScoreStatePartition(const ReducedPartitions<N>& rpm,
     score -= 2 * b.num_bits - 1;
     // Recursively call BestScore, subtracting out our score so far from the
     // limit that we pass to the child.
-    score += PackedScoreState<N>(rpm, b.mask, b.num_bits, limit - score);
+    score += PackedScoreState<N>(rpm, b.mask, b.num_bits, limit - score).first;
   }
   return score;
 }
 
 template <int N>
-int PackedScoreState(const ReducedPartitions<N>& rpm,
-                     const std::array<uint64_t, N>& s, int count, int limit) {
+ScoreResult PackedScoreState(const ReducedPartitions<N>& rpm,
+                              const std::array<uint64_t, N>& s, int count,
+                              int limit) {
   int simple_limit = count * 2 - 1;
-  if (simple_limit >= limit) return kOver;
-  if (count < 3) return simple_limit;
+  if (simple_limit >= limit) return {kOver, Word{}};
+  if (count < 3) return ScoreResult{simple_limit, rpm.Exemplar(s)};
 
   std::vector<ReducedGuess<N>> partitions = rpm.SubPartitions(s);
-  int best_so_far = kOver;
+  ScoreResult best_so_far = {kOver, Word()};
   for (const ReducedGuess<N>& p : partitions) {
     int sc = PackedScoreStatePartition<N>(rpm, s, count, p, limit);
     if (sc < limit) {
       limit = sc;
-      best_so_far = sc;
+      best_so_far = {sc, p.word};
     }
   }
   return best_so_far;
 }
 
-}  // namespace
-
-int PackedScoreState(const State& s, int limit) {
+ScoreResult PackedScoreState(const State& s, int limit) {
   int count = s.count();
   if (count <= 64 * 1) {
     ReducedPartitions<1> rpm(s);
@@ -126,6 +108,26 @@ int PackedScoreState(const State& s, int limit) {
   } else {
     return ScoreState(s, limit);
   }
+}
+
+}  // namespace
+
+ScoreResult ScoreState(const State& s, int limit) {
+  int simple_limit = s.count() * 2 - 1;
+  if (simple_limit >= limit) return {kOver, Word{}};
+  if (s.count() < 3) return ScoreResult{simple_limit, s.Exemplar()};
+  if (s.count() < 257) return PackedScoreState(s, limit);
+
+  std::vector<FullPartition> partitions = SubPartitions(s);
+  ScoreResult best_so_far = {kOver, Word{}};
+  for (const FullPartition& p : partitions) {
+    int sc = ScoreStatePartition(s, p, limit);
+    if (sc < limit) {
+      limit = sc;
+      best_so_far = {sc, p.word};
+    }
+  }
+  return best_so_far;
 }
 
 }  // namespace wordle

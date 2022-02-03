@@ -213,7 +213,7 @@ class ReducedPartitions {
   const std::array<uint64_t, num_words>& FullMask() const { return full_mask_; }
 
   Word Exemplar(const std::array<uint64_t, num_words>& state) const {
-    return reducer_.Exemplar<4>(state);
+    return reducer_.Exemplar<num_words>(state);
   }
 
   std::vector<ReducedGuess<num_words>> SubPartitions(

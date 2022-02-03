@@ -7,6 +7,8 @@
 
 namespace wordle {
 
+using ScoreResult = std::pair<int, Word>;
+
 using CachedCallback = void (*)(const State& s, int score, const char* guess);
 
 // A number which scores can never reach.  The initial state can achieve a
@@ -28,7 +30,7 @@ constexpr int kOver = 100000;
 // the score is larger than this number, it will terminate early and return
 // kOver.  (Note it is not guaranteed that this early exit will happen; this
 // function can return values greater than kScoreLimit that are not kOver.)
-int ScoreState(const State& s, int limit = kScoreLimit);
+ScoreResult ScoreState(const State& s, int limit = kScoreLimit);
 
 // Calculate the score of a given state `s`, presuming the word guess `p` is
 // made.  Barring `kOver`/`limit` pruning, `ScoreState(s)` will return the
@@ -49,10 +51,5 @@ inline int ScoreStatePartition(const State& s, const FullPartition& p,
   std::atomic<int> a{limit};
   return ScoreStatePartition(s, p, &a);
 }
-
-// ScoreState but using a reduced map.
-//
-// XXXX s.count() <= 256
-int PackedScoreState(const State& s, int limit = kScoreLimit);
 
 }  // namespace wordle

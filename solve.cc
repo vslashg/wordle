@@ -112,18 +112,11 @@ int main(int argc, char** argv) {
         if (branch && b.mask.count() < 256) {
           {
             auto time1 = absl::Now();
-            int score = PackedScoreState(b.mask);
+            ScoreResult score = ScoreState(b.mask);
             auto time2 = absl::Now();
-            std::cout << "PACKED Score " << score << ", EV "
-                      << (double(score) / b.mask.count()) << ", time "
-                      << (time2 - time1) / absl::Milliseconds(1) << "ms\n";
-          }
-          {
-            auto time1 = absl::Now();
-            int score = ScoreState(b.mask);
-            auto time2 = absl::Now();
-            std::cout << "FULL Score " << score << ", EV "
-                      << (double(score) / b.mask.count()) << ", time "
+            std::cout << "FULL Score " << score.first << ", best "
+                      << score.second << ", EV "
+                      << (double(score.first) / b.mask.count()) << ", time "
                       << (time2 - time1) / absl::Milliseconds(1) << "ms\n";
           }
 /*

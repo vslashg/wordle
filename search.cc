@@ -81,7 +81,7 @@ int BestScore(const wordle::State& s, int limit, int depth) {
   if (simple_limit >= limit) return kOver;
   if (s.count() < 3) return simple_limit;
   if (s.count() < 257) {
-    int res = wordle::PackedScoreState(s, limit);
+    int res = wordle::ScoreState(s, limit).first;
     if (res < limit) {
       absl::MutexLock lock(&memomap_mu);
       if (memomap.insert(s.ToStateId(), res).second) {
