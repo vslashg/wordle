@@ -28,11 +28,7 @@ constexpr int kOver = 100000;
 // the score is larger than this number, it will terminate early and return
 // kOver.  (Note it is not guaranteed that this early exit will happen; this
 // function can return values greater than kScoreLimit that are not kOver.)
-//
-// num_threads is the number of threads to use to consider various branches
-// on this state.  This number will always be set to 1 on recursive calls;
-// parallelism is only available at the top level.
-int ScoreState(const State& s, int limit = kScoreLimit, int num_threads = 1);
+int ScoreState(const State& s, int limit = kScoreLimit);
 
 // Calculate the score of a given state `s`, presuming the word guess `p` is
 // made.  Barring `kOver`/`limit` pruning, `ScoreState(s)` will return the

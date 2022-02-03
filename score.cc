@@ -33,7 +33,7 @@ int ScoreStatePartition(const State& s, const FullPartition& p,
   return score;
 }
 
-int ScoreState(const State& s, int limit, int num_threads) {
+int ScoreState(const State& s, int limit) {
   int simple_limit = s.count() * 2 - 1;
   if (simple_limit >= limit) return kOver;
   if (s.count() < 3) return simple_limit;
