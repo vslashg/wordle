@@ -10,7 +10,7 @@
 namespace raw {
 
 extern const std::array<uint64_t, 37> vowel_masks[13912];
-extern const std::array<uint64_t, 37> consonant_masks[36237];
+extern const std::array<uint64_t, 37> consonant_masks[36215];
 
 struct Indices {
   wordle::Colors colors;
@@ -32,6 +32,6 @@ struct Guess {
   absl::Span<const Indices> branches;
 };
 
-extern const Guess guesses[12972];
+extern const Guess guesses[12947];
 
 }  // namespace raw

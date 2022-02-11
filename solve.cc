@@ -122,13 +122,11 @@ int main(int argc, char** argv) {
       if (b.colors == c) {
         std::cout << b.mask.count() << " left, exemplar " << b.mask.Exemplar()
                   << "\n";
-        TimeTest<6>(b.mask);
-        TimeTest<5>(b.mask);
         TimeTest<4>(b.mask);
         TimeTest<3>(b.mask);
         TimeTest<2>(b.mask);
         TimeTest<1>(b.mask);
-        if (branch && b.mask.count() < 256) {
+        if (branch/* && b.mask.count() < 256*/) {
           {
             auto time1 = absl::Now();
             ScoreResult score = ScoreState(b.mask);

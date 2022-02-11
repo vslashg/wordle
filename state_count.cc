@@ -123,6 +123,7 @@ void concoct(int num_threads, int low_len, int high_len, unsigned bin_begin,
           every_state.pop_back();
         }
         ScoreResult sr = ScoreState(*s);
+        AddHash(s->Rapidash(), sr);
         {
           absl::MutexLock lock(&every_state_mu);
           printf(":: %016lx %d %s\n", s->Rapidash(), sr.first,

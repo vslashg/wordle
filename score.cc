@@ -24,8 +24,7 @@ bool IsCached(const State& s) {
   return big_results.contains(rapidash);
 }
 
-int ScoreStatePartition(const State& s, const FullPartition& p,
-                        const std::atomic<int>* limit) {
+int ScoreStatePartition(const State& s, const FullPartition& p, int limit) {
   // The base score is one for each bit in `s`, indicating the
   // guess we're about to make.
   int score = s.count();
@@ -40,7 +39,7 @@ int ScoreStatePartition(const State& s, const FullPartition& p,
     score += 2 * b.mask.count() - 1;
   }
   for (const FullPartition::BranchType& b : p.branches) {
-    if (score >= limit->load()) {
+    if (score >= limit) {
       // We've hit the limit, exit early
       return kOver;
     }
@@ -48,7 +47,7 @@ int ScoreStatePartition(const State& s, const FullPartition& p,
     score -= 2 * b.mask.count() - 1;
     // Recursively call BestScore, subtracting out our score so far from the
     // limit that we pass to the child.
-    score += ScoreState(b.mask, limit->load() - score).first;
+    score += ScoreState(b.mask, limit - score).first;
   }
   return score;
 }
@@ -56,14 +55,17 @@ int ScoreStatePartition(const State& s, const FullPartition& p,
 namespace {
 
 template <int N>
-ScoreResult PackedScoreState(const ReducedPartitions<N>& rpm,
-                             const std::array<uint64_t, N>& s, int count,
-                             int limit);
+ScoreResult PackedScoreState(
+    const ReducedPartitions<N>& rpm,
+    absl::flat_hash_map<std::array<uint64_t, N>, ScoreResult>& cache,
+    const std::array<uint64_t, N>& s, int count, int limit);
 
 template <int N>
-int PackedScoreStatePartition(const ReducedPartitions<N>& rpm,
-                              const std::array<uint64_t, N>& s, int count,
-                              const ReducedGuess<N>& p, int limit) {
+int PackedScoreStatePartition(
+    const ReducedPartitions<N>& rpm,
+    absl::flat_hash_map<std::array<uint64_t, N>, ScoreResult>& cache,
+    const std::array<uint64_t, N>& s, int count, const ReducedGuess<N>& p,
+    int limit) {
   // The base score is one for each bit in `s`, indicating the
   // guess we're about to make.
   int score = count;
@@ -74,39 +76,61 @@ int PackedScoreStatePartition(const ReducedPartitions<N>& rpm,
 
   // To enable early pruning, we first add in a lower bound value for each
   // match.  (A state with N bits has as a lower bound 2N-1 as a score.)
+  std::vector<const wordle::ReducedBranch<N>*> branches_left;
   for (const wordle::ReducedBranch<N>& b : p.branches) {
-    score += 2 * b.num_bits - 1;
+    auto it = cache.find(b.mask);
+    if (it == cache.end()) {
+      score += 2 * b.num_bits - 1;
+      branches_left.push_back(&b);
+    } else {
+      score += it->second.first;
+    }
   }
-  for (const wordle::ReducedBranch<N>& b : p.branches) {
+  if (score >= limit) {
+    // We've hit the limit, exit early
+    return kOver;
+  }
+  for (const wordle::ReducedBranch<N>* b : branches_left) {
+    // Subtract out our lower bound guess for this branch.
+    score -= 2 * b->num_bits - 1;
+    // Recursively call BestScore, subtracting out our score so far from the
+    // limit that we pass to the child.
+    score +=
+        PackedScoreState<N>(rpm, cache, b->mask, b->num_bits, limit - score)
+            .first;
     if (score >= limit) {
       // We've hit the limit, exit early
       return kOver;
     }
-    // Subtract out our lower bound guess for this branch.
-    score -= 2 * b.num_bits - 1;
-    // Recursively call BestScore, subtracting out our score so far from the
-    // limit that we pass to the child.
-    score += PackedScoreState<N>(rpm, b.mask, b.num_bits, limit - score).first;
   }
   return score;
 }
 
 template <int N>
-ScoreResult PackedScoreState(const ReducedPartitions<N>& rpm,
-                             const std::array<uint64_t, N>& s, int count,
-                             int limit) {
+ScoreResult PackedScoreState(
+    const ReducedPartitions<N>& rpm,
+    absl::flat_hash_map<std::array<uint64_t, N>, ScoreResult>& cache,
+    const std::array<uint64_t, N>& s, int count, int limit) {
   int simple_limit = count * 2 - 1;
   if (simple_limit >= limit) return {kOver, Word{}};
   if (count < 3) return ScoreResult{simple_limit, rpm.Exemplar(s)};
 
+  auto it = cache.find(s);
+  if (it != cache.end()) {
+    return it->second;
+  }
+
   std::vector<ReducedGuess<N>> partitions = rpm.SubPartitions(s);
   ScoreResult best_so_far = {kOver, Word()};
   for (const ReducedGuess<N>& p : partitions) {
-    int sc = PackedScoreStatePartition<N>(rpm, s, count, p, limit);
+    int sc = PackedScoreStatePartition<N>(rpm, cache, s, count, p, limit);
     if (sc < limit) {
       limit = sc;
       best_so_far = {sc, p.word};
     }
+  }
+  if (best_so_far.first < kOver) {
+    cache[s] = best_so_far;
   }
   return best_so_far;
 }
@@ -115,16 +139,20 @@ ScoreResult PackedScoreState(const State& s, int limit) {
   int count = s.count();
   if (count <= 64 * 1) {
     ReducedPartitions<1> rpm(s);
-    return PackedScoreState<1>(rpm, rpm.FullMask(), count, limit);
+    absl::flat_hash_map<std::array<uint64_t, 1>, ScoreResult> cache;
+    return PackedScoreState<1>(rpm, cache, rpm.FullMask(), count, limit);
   } else if (count <= 64 * 2) {
     ReducedPartitions<2> rpm(s);
-    return PackedScoreState<2>(rpm, rpm.FullMask(), count, limit);
+    absl::flat_hash_map<std::array<uint64_t, 2>, ScoreResult> cache;
+    return PackedScoreState<2>(rpm, cache, rpm.FullMask(), count, limit);
   } else if (count <= 64 * 3) {
     ReducedPartitions<3> rpm(s);
-    return PackedScoreState<3>(rpm, rpm.FullMask(), count, limit);
+    absl::flat_hash_map<std::array<uint64_t, 3>, ScoreResult> cache;
+    return PackedScoreState<3>(rpm, cache, rpm.FullMask(), count, limit);
   } else if (count <= 64 * 4) {
     ReducedPartitions<4> rpm(s);
-    return PackedScoreState<4>(rpm, rpm.FullMask(), count, limit);
+    absl::flat_hash_map<std::array<uint64_t, 4>, ScoreResult> cache;
+    return PackedScoreState<4>(rpm, cache, rpm.FullMask(), count, limit);
   } else {
     return ScoreState(s, limit);
   }
@@ -136,8 +164,9 @@ ScoreResult ScoreState(const State& s, int limit) {
   int simple_limit = s.count() * 2 - 1;
   if (simple_limit >= limit) return {kOver, Word{}};
   if (s.count() < 3) return ScoreResult{simple_limit, s.Exemplar()};
-  const uint64_t bighash = s.Rapidash();
+  uint64_t bighash;
   if (s.count() >= kCutoff) {
+    bighash = s.Rapidash();
     absl::MutexLock lock(&big_results_mu);
     auto it = big_results.find(bighash);
     if (it != big_results.end()) {
@@ -145,14 +174,8 @@ ScoreResult ScoreState(const State& s, int limit) {
     }
   }
   if (s.count() < 257) {
-    ScoreResult sr = PackedScoreState(s, limit);
-    if (s.count() >= kCutoff) {
-      absl::MutexLock lock(&big_results_mu);
-      big_results.try_emplace(bighash, sr);
-    }
-    return sr;
+    return PackedScoreState(s, limit);
   }
-  limit = kScoreLimit;
 
   std::vector<FullPartition> partitions = SubPartitions(s);
   ScoreResult best_so_far = {kOver, Word{}};
@@ -162,10 +185,6 @@ ScoreResult ScoreState(const State& s, int limit) {
       limit = sc;
       best_so_far = {sc, p.word};
     }
-  }
-  if (s.count() >= kCutoff) {
-    absl::MutexLock lock(&big_results_mu);
-    big_results.try_emplace(bighash, best_so_far);
   }
   return best_so_far;
 }

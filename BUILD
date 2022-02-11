@@ -130,3 +130,16 @@ cc_binary(
         "@absl//absl/synchronization",
     ],
 )
+
+cc_binary(
+    name = "pure_count",
+    srcs = ["pure_count.cc"],
+    deps = [
+        ":partition_map",
+        ":score",
+        ":state",
+        "@absl//absl/container:flat_hash_set",
+        "@absl//absl/synchronization",
+    ],
+)
+
