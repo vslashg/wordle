@@ -153,11 +153,11 @@ class ReducedPartitions {
       }
     }
 /*
-    std::cout << "Vowel masks reduced from " << 13912 << " to "
+    std::cerr << "Vowel masks reduced from " << 13912 << " to "
               << vowel_masks_.size() << "\n";
-    std::cout << "Consonant masks reduced from " << 36237 << " to "
+    std::cerr << "Consonant masks reduced from " << 36237 << " to "
               << consonant_masks_.size() << "\n";
-*/  
+*/
     int total_branch_count_debug = 0;
     int reduced_branch_count_debug = 0;
     for (const raw::Guess& raw_guess : raw::guesses) {
@@ -172,15 +172,6 @@ class ReducedPartitions {
         }
       }
       if (!reduced_guess.branches.empty()) {
-        /* XXXDEBUG
-        int ccc = 0;
-        for (const PackedReducedBranch& br : reduced_guess.branches) {
-          ccc += br.num_bits;
-        }
-        if (ccc != mask.count() && ccc != (mask.count() - 1)) {
-          __builtin_trap();
-        }
-        XXXDEBUG */
         std::sort(reduced_guess.branches.begin(), reduced_guess.branches.end(),
                   PackedReducedBranch::ShortFirst{});
         guesses_.push_back(reduced_guess);
@@ -203,9 +194,9 @@ class ReducedPartitions {
     guesses_.erase(std::unique(guesses_.begin(), guesses_.end(), guess_eq),
                    guesses_.end());
 /*
-    std::cout << "Guesses reduced from " << kNumTargets + kNumNonTargets
+    std::cerr << "Guesses reduced from " << kNumTargets + kNumNonTargets
               << " to " << guesses_.size() << "\n";
-    std::cout << "Total branches reduced from " << total_branch_count_debug
+    std::cerr << "Total branches reduced from " << total_branch_count_debug
               << " to " << reduced_branch_count_debug << "\n";
 */
   }
