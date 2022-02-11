@@ -60,6 +60,11 @@ class State {
            (StateId(max_bit_index_) << 64) | StateId(bits_hash_);
   }
 
+  template <typename H>
+  friend H AbslHashValue(H h, const State& s) {
+    return H::combine(std::move(h), s.array());
+  }
+
   uint64_t Rapidash() const {
     uint64_t sh = 14695981039346656037u;
     for (uint64_t word : *words_) {
@@ -116,6 +121,7 @@ class State {
                                            : Word(min_bit_index_).ToString();
   }
   const char* Exemplar2() const { return Word(max_bit_index_).ToString(); }
+  std::vector<Word> Words() const;
 
   int count() const { return num_bits_; }
   bool empty() const { return num_bits_ == 0; }

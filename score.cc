@@ -1,11 +1,31 @@
 #include "score.h"
 
+#include "absl/container/flat_hash_map.h"
+#include "absl/synchronization/mutex.h"
 #include "reduced_map.h"
 
 namespace wordle {
 
+namespace {
+
+absl::Mutex big_results_mu;
+absl::flat_hash_map<uint64_t, ScoreResult> big_results;
+
+}  // namespace
+
+bool AddHash(uint64_t rapidash, ScoreResult res) {
+  absl::MutexLock lock(&big_results_mu);
+  return big_results.emplace(rapidash, res).second;
+}
+
+bool IsCached(const State& s) {
+  uint64_t rapidash = s.Rapidash();
+  absl::MutexLock lock(&big_results_mu);
+  return big_results.contains(rapidash);
+}
+
 int ScoreStatePartition(const State& s, const FullPartition& p,
-                                 const std::atomic<int>* limit) {
+                        const std::atomic<int>* limit) {
   // The base score is one for each bit in `s`, indicating the
   // guess we're about to make.
   int score = s.count();
@@ -37,8 +57,8 @@ namespace {
 
 template <int N>
 ScoreResult PackedScoreState(const ReducedPartitions<N>& rpm,
-                              const std::array<uint64_t, N>& s, int count,
-                              int limit);
+                             const std::array<uint64_t, N>& s, int count,
+                             int limit);
 
 template <int N>
 int PackedScoreStatePartition(const ReducedPartitions<N>& rpm,
@@ -73,8 +93,8 @@ int PackedScoreStatePartition(const ReducedPartitions<N>& rpm,
 
 template <int N>
 ScoreResult PackedScoreState(const ReducedPartitions<N>& rpm,
-                              const std::array<uint64_t, N>& s, int count,
-                              int limit) {
+                             const std::array<uint64_t, N>& s, int count,
+                             int limit) {
   int simple_limit = count * 2 - 1;
   if (simple_limit >= limit) return {kOver, Word{}};
   if (count < 3) return ScoreResult{simple_limit, rpm.Exemplar(s)};
@@ -116,7 +136,23 @@ ScoreResult ScoreState(const State& s, int limit) {
   int simple_limit = s.count() * 2 - 1;
   if (simple_limit >= limit) return {kOver, Word{}};
   if (s.count() < 3) return ScoreResult{simple_limit, s.Exemplar()};
-  if (s.count() < 257) return PackedScoreState(s, limit);
+  const uint64_t bighash = s.Rapidash();
+  if (s.count() >= kCutoff) {
+    absl::MutexLock lock(&big_results_mu);
+    auto it = big_results.find(bighash);
+    if (it != big_results.end()) {
+      return it->second;
+    }
+  }
+  if (s.count() < 257) {
+    ScoreResult sr = PackedScoreState(s, limit);
+    if (s.count() >= kCutoff) {
+      absl::MutexLock lock(&big_results_mu);
+      big_results.try_emplace(bighash, sr);
+    }
+    return sr;
+  }
+  limit = kScoreLimit;
 
   std::vector<FullPartition> partitions = SubPartitions(s);
   ScoreResult best_so_far = {kOver, Word{}};
@@ -126,6 +162,10 @@ ScoreResult ScoreState(const State& s, int limit) {
       limit = sc;
       best_so_far = {sc, p.word};
     }
+  }
+  if (s.count() >= kCutoff) {
+    absl::MutexLock lock(&big_results_mu);
+    big_results.try_emplace(bighash, best_so_far);
   }
   return best_so_far;
 }

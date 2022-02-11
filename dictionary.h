@@ -7,8 +7,8 @@
 
 namespace wordle {
 
-constexpr int kNumTargets = 2315;
-constexpr int kNumNonTargets = 10657;
+constexpr int kNumTargets = 2309;
+constexpr int kNumNonTargets = 10638;
 constexpr int kDictionarySize = kNumTargets + kNumNonTargets;
 
 class Word {

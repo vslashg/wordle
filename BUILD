@@ -6,8 +6,10 @@ cc_library(
 
 cc_library(
     name = "state",
+    srcs = ["state.cc"],
     hdrs = ["state.h"],
     deps = [
+        ":dictionary",
         "@absl//absl/hash",
         "@absl//absl/numeric:bits",
     ],
@@ -82,6 +84,8 @@ cc_library(
         ":partition_map",
         ":reduced_map",
         ":state",
+        "@absl//absl/container:flat_hash_map",
+        "@absl//absl/synchronization",
     ],
 )
 
@@ -97,8 +101,8 @@ cc_binary(
     deps = [
         ":color_guess",
         ":partition_map",
-        ":thread_pool",
         ":score",
+        ":thread_pool",
         "@absl//absl/time",
         "@folly",
     ],
@@ -120,6 +124,9 @@ cc_binary(
     srcs = ["state_count.cc"],
     deps = [
         ":partition_map",
+        ":score",
+        ":state",
+        "@absl//absl/container:flat_hash_set",
         "@absl//absl/synchronization",
     ],
 )

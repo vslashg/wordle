@@ -7,9 +7,14 @@
 
 namespace wordle {
 
+constexpr int kCutoff = 257 - 64;
+
 using ScoreResult = std::pair<int, Word>;
 
 using CachedCallback = void (*)(const State& s, int score, const char* guess);
+
+bool AddHash(uint64_t rapidash, ScoreResult res);
+bool IsCached(const State& s);
 
 // A number which scores can never reach.  The initial state can achieve a
 // score of 7920 through the guess `salet`.  (It's not yet known if this is

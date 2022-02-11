@@ -52,14 +52,26 @@ int Nice(wordle::State full_state) {
     if (rgs.empty()) {
       return 1;
     }
-    std::cout << "I guess: " << rgs.front().word << "\n";
-    std::cout << "I expect worst case is "
+    std::cout << "Greedy guess: " << rgs.front().word << ", worst case is "
               << rgs.front().branches.front().num_bits << "\n";
+    Word guess;
+    ReducedGuess<4>* part = nullptr;
+    while (!part) {
+      std::string textguess;
+      std::cout << "Guess? ";
+      std::cin >> textguess;
+      Word w2(textguess);
+      for (ReducedGuess<4>& p : rgs) {
+        if (p.word == w2) {
+          part = &p;
+        }
+      }
+    }
     std::string colors;
     std::cout << "Colors? ";
     std::cin >> colors;
     Colors c(colors);
-    for (const wordle::ReducedBranch<4>& b : rgs.front().branches) {
+    for (const wordle::ReducedBranch<4>& b : part->branches) {
       if (b.colors == c) {
         state = b.mask;
         break;
@@ -72,15 +84,22 @@ int main(int argc, char** argv) {
   wordle::State state = wordle::State::MakeAllBits();
   while (state.count() > 1) {
     if (argc == 1 && state.count() < 257) {
-      return Nice(std::move(state));
+      //return Nice(std::move(state));
     }
     auto sp = SubPartitions(state);
+    std::cout << state.count() << " bits, " << sp.size() << " branches\n";
+    if (state.count() < 20) {
+      for (Word word : state.Words()) {
+        std::cout << word << " ";
+      }
+      std::cout << "\n";
+    }
     if (sp.empty()) {
       break;
     }
-    std::cout << " Best guess: " << sp.front().word << ", worst case is "
+    std::cout << "Greedy guess: " << sp.front().word << ", worst case is "
               << sp.front().branches.front().mask.count() << "\n";
-    std::cout << "Worst guess: " << sp.back().word << ", worst case is "
+    std::cout << " Worst guess: " << sp.back().word << ", worst case is "
               << sp.back().branches.front().mask.count() << "\n";
     Word guess;
     FullPartition* part = nullptr;
